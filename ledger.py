@@ -58,7 +58,7 @@ def _coerce_float(value: object, default: float = 0.0) -> float:
     if value is None:
         return default
     try:
-        v = float(value)
+        v = float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return default
     return default if math.isnan(v) else v
@@ -167,8 +167,8 @@ def load_savings(path: Path) -> list[SavingsAccount]:
     return [
         SavingsAccount(
             name=r['name'],
-            balance=float(r['balance']),
-            apy=float(r['apy']),
+            balance=_coerce_float(r.get('balance')),
+            apy=_coerce_float(r.get('apy')),
             bank=r.get('bank', ''),
         )
         for r in data

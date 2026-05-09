@@ -27,7 +27,7 @@ def _compute_signal(history: dict, flat_band: float) -> dict:
     p1m = history.get('1M', [])
     p1w = history.get('1W', [])
 
-    def pct_ret(p):
+    def pct_ret(p: list[float]) -> float:
         return (p[-1] - p[0]) / p[0] if len(p) >= 2 and p[0] else float('nan')
 
     sig, reason = momentum_signal(pct_ret(p1w[-2:]), pct_ret(p1w), pct_ret(p1m), flat_band)
@@ -84,18 +84,20 @@ def _build_savings_data(savings_acc: list, today_d: date) -> tuple:
     rows = []
     savings_total = 0.0
     total_accrued = 0.0
+    days_until: int | None = None
     if INTEREST_PAYMENT_DAY:
         _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today_d)
-        days_until   = (next_date - today_d).days
+        days_until = (next_date - today_d).days
     for acc in savings_acc:
         savings_total += acc.balance
+        acc_interest: float | None = None
+        proj_payment: float | None = None
+        daily_earn:   float | None = None
         if INTEREST_PAYMENT_DAY:
             acc_interest  = accrued_interest(acc, INTEREST_PAYMENT_DAY, today_d)
             proj_payment  = projected_next_payment(acc, INTEREST_PAYMENT_DAY, today_d)
             daily_earn    = acc.balance * acc.apy / 365  # simple daily rate, not compound
             total_accrued += acc_interest
-        else:
-            days_until = acc_interest = proj_payment = daily_earn = None
         rows.append({
             "name":               acc.name,
             "balance":            round(acc.balance, 2),
@@ -191,7 +193,7 @@ def build_html(payload: dict) -> Path:
     return OUT_FILE
 
 
-def main():
+def main() -> None:
     print("Fetching portfolio data…")
     out = build_html(build_payload())
     print(f"Dashboard written to {out}")

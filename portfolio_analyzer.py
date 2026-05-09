@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -229,7 +230,7 @@ def print_results(result: AnalysisResult) -> None:
 
 # ── Pure render: matplotlib ───────────────────────────────────────────────────
 
-def _plot_cumulative(ax, result: AnalysisResult) -> None:
+def _plot_cumulative(ax: Axes, result: AnalysisResult) -> None:
     p = result.portfolio.cumulative_returns
     b = result.benchmark.cumulative_returns
     ax.plot(p.index, (p - 1) * 100, label='Portfolio', linewidth=2, color='#2E86AB')
@@ -240,7 +241,7 @@ def _plot_cumulative(ax, result: AnalysisResult) -> None:
     ax.legend()
 
 
-def _plot_risk_return(ax, result: AnalysisResult) -> None:
+def _plot_risk_return(ax: Axes, result: AnalysisResult) -> None:
     if not result.individual_assets:
         return
     rf_pct = result.risk_free_rate * 100
@@ -271,7 +272,7 @@ def _plot_risk_return(ax, result: AnalysisResult) -> None:
     ax.legend(loc='best')
 
 
-def _plot_sharpe(ax, result: AnalysisResult) -> None:
+def _plot_sharpe(ax: Axes, result: AnalysisResult) -> None:
     sharpe_data = {
         'Portfolio':              result.portfolio.sharpe_ratio,
         result.benchmark_ticker:  result.benchmark.sharpe_ratio,
@@ -280,9 +281,9 @@ def _plot_sharpe(ax, result: AnalysisResult) -> None:
         'Portfolio':              result.portfolio.sharpe_ci,
         result.benchmark_ticker:  result.benchmark.sharpe_ci,
     }
-    colors = ['#2E86AB' if v == max(sharpe_data.values()) else '#A23B72'
-              for v in sharpe_data.values()]
-    bars = ax.bar(sharpe_data.keys(), sharpe_data.values(), color=colors, alpha=0.7)
+    best   = max(sharpe_data.values())
+    colors = ['#2E86AB' if v == best else '#A23B72' for v in sharpe_data.values()]
+    bars = ax.bar(list(sharpe_data.keys()), list(sharpe_data.values()), color=colors, alpha=0.7)
     for i, key in enumerate(sharpe_data):
         ci_lo, ci_hi = cis[key]
         sr           = sharpe_data[key]
@@ -299,15 +300,15 @@ def _plot_sharpe(ax, result: AnalysisResult) -> None:
                 f'{height:.3f}', ha='center', va=va, fontweight='bold')
 
 
-def _plot_allocation(ax, result: AnalysisResult) -> None:
+def _plot_allocation(ax: Axes, result: AnalysisResult) -> None:
     weights = list(result.weights.values())
     labels  = [f"{t}\n({w:.1%})" for t, w in result.weights.items()]
     ax.pie(weights, labels=labels, autopct='',
-           colors=plt.cm.Set3(range(len(result.weights))), startangle=90)
+           colors=plt.cm.Set3(range(len(result.weights))), startangle=90)  # type: ignore[attr-defined]
     ax.set_title('Portfolio Allocation', fontweight='bold')
 
 
-def _plot_rolling_sharpe(ax, result: AnalysisResult) -> None:
+def _plot_rolling_sharpe(ax: Axes, result: AnalysisResult) -> None:
     r = result.rolling
     if r is None:
         return
@@ -323,7 +324,7 @@ def _plot_rolling_sharpe(ax, result: AnalysisResult) -> None:
     ax.legend()
 
 
-def _plot_drawdown(ax, result: AnalysisResult) -> None:
+def _plot_drawdown(ax: Axes, result: AnalysisResult) -> None:
     r = result.rolling
     if r is None:
         return
@@ -354,7 +355,7 @@ def plot_dashboard(result: AnalysisResult, output_path: Path) -> Path:
         _plot_drawdown      (axes[2, 1], result)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.tight_layout(rect=(0, 0, 1, 0.96))
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
     logger.info("Chart saved: %s", output_path)

@@ -11,7 +11,7 @@ DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.png"
 
 # ── Demo price histories ──────────────────────────────────────────────────────
 
-def _trend(start, end, n):
+def _trend(start: float, end: float, n: int) -> list[float]:
     """Linear price series with slight noise for a realistic sparkline."""
     random.seed(42)
     step = (end - start) / (n - 1)

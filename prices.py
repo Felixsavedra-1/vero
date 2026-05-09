@@ -114,7 +114,7 @@ def _close_frame(data: pd.DataFrame, tickers: list[str]) -> pd.DataFrame:
         close = data['Close']
     else:
         close = data[['Close']].rename(columns={'Close': tickers[0]})
-    return close
+    return close  # type: ignore[return-value]
 
 
 def fetch_price(ticker: str) -> float:

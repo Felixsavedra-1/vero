@@ -124,8 +124,8 @@ class MorningBrief:
             return float('nan')
         s = self._prices[ticker].dropna()
         current_year = datetime.now().year
-        prior   = s[s.index.year < current_year]
-        current = s[s.index.year == current_year]
+        prior   = s[s.index.year < current_year]   # type: ignore[attr-defined]
+        current = s[s.index.year == current_year]  # type: ignore[attr-defined]
         if prior.empty or current.empty:
             return float('nan')
         return float(current.iloc[-1] / prior.iloc[-1] - 1)
@@ -209,14 +209,14 @@ class MorningBrief:
         return f'{sign}${abs(val):.2f}'
 
     _DIV = '─' * 76
+    _BAR = '═' * 68
 
     def render(self) -> None:
-        bar = '═' * 68
         now = datetime.now(ET)
-        print(f'\n{bar}')
+        print(f'\n{self._BAR}')
         print(f"  Vero  ·  {now.strftime('%A, %B %-d, %Y  %-I:%M %p ET')}")
         print(f"  {_BRAND}@vedra&co{_RESET}")
-        print(bar)
+        print(self._BAR)
         if self._savings:
             self._render_savings()
         self._render_portfolio()
@@ -225,7 +225,7 @@ class MorningBrief:
         if self.indices:
             self._render_global_markets()
         self._render_risk()
-        print(f'\n{bar}\n')
+        print(f'\n{self._BAR}\n')
 
     def _render_savings(self) -> None:
         total_balance  = sum(a.balance for a in self._savings)
@@ -236,7 +236,7 @@ class MorningBrief:
         today      = date.today()
         days_until = 0
         if show_accrual:
-            _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today)
+            _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
             days_until   = (next_date - today).days
 
         # Header
@@ -255,8 +255,8 @@ class MorningBrief:
             bank_col = f'{a.bank:<10} ' if show_bank else ''
             base_row = f'  {bank_col}{a.name:<{acct_w}} {bal_str:>12}   {a.apy:>5.2%}   {int_str:>14}'
             if show_accrual:
-                acc  = accrued_interest(a, INTEREST_PAYMENT_DAY, today)
-                proj = projected_next_payment(a, INTEREST_PAYMENT_DAY, today)
+                acc  = accrued_interest(a, INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
+                proj = projected_next_payment(a, INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
                 total_accrued += acc
                 total_proj    += proj
                 print(f'{base_row}   {f"+${acc:,.2f}":>12}   {f"+${proj:,.2f} in {days_until}d":>16}')
@@ -291,7 +291,7 @@ class MorningBrief:
 
         total_dollar_pnl, components = self._render_holding_rows(current_value)
 
-        def agg(k):
+        def agg(k: str) -> float:
             return sum(components[k]) if components[k] else float('nan')
 
         p1d, p1w, p1m, pytd = agg('1d'), agg('1w'), agg('1m'), agg('ytd')
@@ -306,7 +306,7 @@ class MorningBrief:
         if self.mutual_funds & set(self.holdings):
             print('\n  * Mutual fund NAV updated after 4 PM ET — reflects prior close.')
 
-    def _render_holding_rows(self, current_value: float) -> tuple:
+    def _render_holding_rows(self, current_value: float) -> tuple[float, dict[str, list[float]]]:
         """Per-holding rows. Returns (total_dollar_pnl, weighted return components)."""
         components: dict[str, list] = {'1d': [], '1w': [], '1m': [], 'ytd': []}
         total_dollar_pnl = 0.0
@@ -357,7 +357,7 @@ class MorningBrief:
         b1m  = self._period_return(self.benchmark, BRIEF_WINDOW_1M)
         bytd = self._ytd_return(self.benchmark)
 
-        def alpha(p, b):
+        def alpha(p: float, b: float) -> float:
             return p - b if np.isfinite(p) and np.isfinite(b) else float('nan')
 
         print(
@@ -407,7 +407,7 @@ class MorningBrief:
             f"Max Drawdown {risk['max_drawdown']:.1%}"
         )
 
-    def _watchlist_signal(self, ticker: str) -> tuple:
+    def _watchlist_signal(self, ticker: str) -> tuple[str, str]:
         return momentum_signal(
             self._period_return(ticker, BRIEF_WINDOW_1D),
             self._period_return(ticker, BRIEF_WINDOW_1W),

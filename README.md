@@ -2,7 +2,7 @@
 
 > Wake up. Open terminal. Type `brief`.
 
-Terminal portfolio tracker with a live 3D dashboard — trades, P&L, daily brief, Sharpe, drawdown. Stored locally, no accounts, no login.
+Terminal portfolio tracker with a live 3D dashboard — positions, P&L, Sharpe, drawdown, alpha. Stored locally; no accounts, no login.
 
 ![Dashboard preview](docs/dashboard-preview.png)
 
@@ -62,7 +62,7 @@ portfolio goal show
 
 ## Morning brief
 
-One command gives you portfolio value, per-holding returns across 1D/1W/1M/YTD, alpha vs. SPY, and a trailing 1-year risk snapshot:
+Portfolio value, per-holding returns across 1D / 1W / 1M / YTD, alpha vs. SPY, and a trailing 1-year risk snapshot — one command:
 
 ```
 ════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ brief                  # brief + open dashboard
 python dashboard.py    # dashboard only
 ```
 
-3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist company to open a live analysis panel — returns, volatility, drawdown, switchable price chart.
+3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker to open a live analysis panel — returns, volatility, drawdown, switchable price chart.
 
 > On headless servers, the dashboard writes to `~/.portfolio/dashboard.html`. Copy or `scp` the file to view it.
 
@@ -124,7 +124,7 @@ MUTUAL_FUNDS      = frozenset({'SWPPX'})
 
 | Setting | Default | Description |
 |:---|:---|:---|
-| `WATCHLIST` | `{}` | Tickers shown in watchlist |
+| `WATCHLIST` | `{}` | Tickers mapped to display labels |
 | `MUTUAL_FUNDS` | `frozenset()` | NAV-lagged tickers, flagged `*` in the brief |
 | `BENCHMARK` | `SPY` | Benchmark for alpha |
 | `RISK_FREE_RATE` | `0.045` | Annual risk-free rate for Sharpe |

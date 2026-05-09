@@ -137,11 +137,12 @@ def render_gains(
             f"  {'Date':<12} {'Ticker':<10} {'Shares':>9}  {'Proceeds':>10}  {'P&L':>14}"
         )
         lines.append(_div(_W_GAINS))
-        for t in sells:
-            total_realized += t.realized_pnl
+        for txn in sells:
+            assert txn.realized_pnl is not None  # sells is filtered to realized_pnl is not None
+            total_realized += txn.realized_pnl
             lines.append(
-                f'  {t.timestamp[:10]:<12} {t.ticker:<10} {t.shares:>9.4f}  '
-                f'{_dollar(t.dollars):>10}  {_signed_dollar(t.realized_pnl):>14}'
+                f'  {txn.timestamp[:10]:<12} {txn.ticker:<10} {txn.shares:>9.4f}  '
+                f'{_dollar(txn.dollars):>10}  {_signed_dollar(txn.realized_pnl):>14}'
             )
         lines.append(_div(_W_GAINS))
         lines.append(f'  {"Total realized":.<30} {_signed_dollar(total_realized):>14}')
@@ -166,7 +167,6 @@ def render_gains(
         )
         lines.append(_div(_W_GAINS))
         for t, h in filtered_holdings.items():
-            price = prices.get(t)
             if not _is_priceable(t, prices, h):
                 lines.append(
                     f'  {t:<10} {_label(h.label):<22} {"—":>9}  '
@@ -174,6 +174,7 @@ def render_gains(
                 )
                 total_cost += h.cost
                 continue
+            price            = prices[t]  # safe: _is_priceable checks t in prices
             value            = h.shares * price
             gain_dollar      = round(value - h.cost, 2)
             gain_pct         = gain_dollar / h.cost if h.cost else float('nan')

@@ -99,10 +99,8 @@ def cmd_buy(args: argparse.Namespace, prompt: Callable[[str], str] = input) -> N
     timestamp = _trade_ts(date_str)
 
     if is_new:
-        holdings[ticker] = Holding(
-            ticker=ticker, shares=shares, cost=dollars,
-            first_purchase=timestamp, label=label,
-        )
+        h = Holding(ticker=ticker, shares=shares, cost=dollars, first_purchase=timestamp, label=label or ticker)
+        holdings[ticker] = h
     else:
         h         = holdings[ticker]
         h.shares += shares
@@ -124,7 +122,6 @@ def cmd_buy(args: argparse.Namespace, prompt: Callable[[str], str] = input) -> N
         TRANSACTIONS_FILE,
     )
 
-    h = holdings[ticker]
     if is_new:
         print(f'\n  Opened  {ticker}  {shares:.4f} shares @ ${price:,.2f}  |  ${dollars:,.2f} invested\n')
     else:

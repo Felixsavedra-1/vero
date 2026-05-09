@@ -3,6 +3,7 @@ metrics.py — Shared financial metric calculations.
 """
 
 import math
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -68,7 +69,7 @@ def risk_snapshot(
     returns: pd.Series,
     risk_free_rate: float,
     min_observations: int,
-) -> dict:
+) -> dict[str, Any]:
     """Returns {} if history is insufficient."""
     trailing = returns.iloc[-TRADING_DAYS_PER_YEAR:].dropna()
     if len(trailing) < min_observations:
