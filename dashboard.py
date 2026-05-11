@@ -199,7 +199,7 @@ def main() -> None:
     print(f"Dashboard written to {out}")
     try:
         webbrowser.open(out.as_uri())
-    except Exception:
+    except (OSError, RuntimeError):
         print(f"  Open manually → {out.as_uri()}")
 
 

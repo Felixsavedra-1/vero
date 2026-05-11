@@ -1,10 +1,6 @@
-import os
-
 import numpy as np
 import pandas as pd
 import pytest
-
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
 from config import TRADING_DAYS_PER_YEAR
 from portfolio_analyzer import (
@@ -14,6 +10,11 @@ from portfolio_analyzer import (
     compute_analysis,
     compute_asset_metrics,
 )
+
+
+@pytest.fixture(autouse=True)
+def _mpl_tmp(tmp_path, monkeypatch):
+    monkeypatch.setenv("MPLCONFIGDIR", str(tmp_path))
 
 
 # ── Constructor / input validation ───────────────────────────────────────────

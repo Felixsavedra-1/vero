@@ -4,7 +4,7 @@
 
 Terminal portfolio tracker with a live 3D dashboard — positions, P&L, Sharpe, drawdown, alpha. Stored locally; no accounts, no login.
 
-![Dashboard preview](docs/dashboard-preview.png)
+![Dashboard preview](docs/dashboard-preview.gif)
 
 ---
 
@@ -94,7 +94,9 @@ python dashboard.py    # dashboard only
 
 3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker to open a live analysis panel — returns, volatility, drawdown, switchable price chart.
 
-> On headless servers, the dashboard writes to `~/.portfolio/dashboard.html`. Copy or `scp` the file to view it.
+> `brief` and `portfolio` are the installed CLI commands (via `setup.sh`). The `python *.py` forms run scripts directly without installation.
+
+> On headless servers, the dashboard writes to `~/.portfolio/dashboard.html`. Copy or `scp` the file to view it locally.
 
 ---
 

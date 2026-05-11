@@ -445,7 +445,7 @@ def main() -> None:
     ))
     try:
         webbrowser.open(out_path.as_uri())
-    except Exception:
+    except (OSError, RuntimeError):
         print(f"\n  Dashboard → {out_path.as_uri()}\n")
 
 

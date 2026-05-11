@@ -111,6 +111,9 @@ def load_transactions(path: Path) -> list[Transaction]:
         txn_id    = r.get('id') or f"txn_{timestamp[:10]}_{r.get('ticker', '')}_{i}"
         shares    = _coerce_float(r.get('shares'))
         price     = _coerce_float(r.get('price'))
+        _rpnl     = r.get('realized_pnl')
+        if isinstance(_rpnl, float) and not math.isfinite(_rpnl):
+            _rpnl = None
         result.append(Transaction(
             id=txn_id,
             timestamp=timestamp,
@@ -119,7 +122,7 @@ def load_transactions(path: Path) -> list[Transaction]:
             shares=shares,
             dollars=_coerce_float(r.get('dollars')),
             price=price,
-            realized_pnl=r.get('realized_pnl'),
+            realized_pnl=_rpnl,
             notes=r.get('notes', ''),
         ))
     return result

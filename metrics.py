@@ -19,7 +19,7 @@ def annualized_sharpe(returns: pd.Series, risk_free_rate: float) -> float:
     annual_ret = returns.mean() * TRADING_DAYS_PER_YEAR
     annual_vol = returns.std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
     if annual_vol == 0:
-        return 0.0
+        return float('nan')
     return (annual_ret - risk_free_rate) / annual_vol
 
 

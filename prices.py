@@ -23,7 +23,8 @@ import yfinance as yf
 
 HOLIDAY_WINDOW_DAYS = 7  # lookback window to find the prior close around a target date
 
-_DESC_CACHE_FILE = Path.home() / '.portfolio' / 'watchlist_descriptions_cache.json'
+from config import DATA_DIR
+_DESC_CACHE_FILE = DATA_DIR / 'watchlist_descriptions_cache.json'
 _DESC_CACHE_TTL_DAYS = 30
 
 
@@ -48,8 +49,7 @@ def _is_cache_fresh(entry: dict) -> bool:
     dt = datetime.fromisoformat(ts)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    age = (datetime.now(timezone.utc) - dt).days
-    return age < _DESC_CACHE_TTL_DAYS
+    return datetime.now(timezone.utc) - dt < timedelta(days=_DESC_CACHE_TTL_DAYS)
 
 
 def _first_sentences(text: str, n: int = 3) -> str:
@@ -275,7 +275,8 @@ def fetch_watchlist_info(tickers: list[str]) -> dict[str, dict[str, str]]:
                     'cached_at':   datetime.now(timezone.utc).isoformat(),
                 }
                 dirty = True
-            except Exception:
+            except Exception as exc:
+                logging.warning("Could not fetch info for %s: %s: %s", ticker, type(exc).__name__, exc)
                 result[ticker] = {'description': '', 'sector': ''}
 
     if dirty:

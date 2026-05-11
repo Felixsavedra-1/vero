@@ -116,25 +116,31 @@ PAYLOAD = {
     "chart_src": "",
 }
 
-out = build_html(PAYLOAD)
+def write_preview_html(disable_animations: bool = False) -> Path:
+    """Inject PAYLOAD into the dashboard template and return the output path."""
+    out = build_html(PAYLOAD)
+    if disable_animations:
+        html = out.read_text()
+        if '</head>' not in html:
+            raise ValueError("Dashboard template is missing </head> — animation injection failed")
+        html = html.replace(
+            '</head>',
+            '<style>*, *::before, *::after {'
+            ' animation-duration: 0.001ms !important;'
+            ' transition-duration: 0.001ms !important; }'
+            '</style>\n</head>',
+        )
+        out.write_text(html)
+    return out
 
-# Disable animations so the screenshot captures fully-rendered charts.
-html = out.read_text()
-html = html.replace(
-    '</head>',
-    '<style>*, *::before, *::after {'
-    ' animation-duration: 0.001ms !important;'
-    ' transition-duration: 0.001ms !important; }'
-    '</style>\n</head>',
-)
-out.write_text(html)
 
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    page = browser.new_page(viewport={"width": 1400, "height": 800})
-    page.goto(out.as_uri())
-    page.wait_for_timeout(1500)
-    page.screenshot(path=str(DOCS_OUT), full_page=False)
-    browser.close()
-
-print(f"Screenshot saved to: {DOCS_OUT}")
+if __name__ == "__main__":
+    out = write_preview_html(disable_animations=True)
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": 1400, "height": 800})
+        page.goto(out.as_uri())
+        page.wait_for_timeout(1500)
+        page.screenshot(path=str(DOCS_OUT), full_page=False)
+        browser.close()
+    print(f"Screenshot saved to: {DOCS_OUT}")
