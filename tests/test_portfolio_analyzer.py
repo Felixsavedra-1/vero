@@ -80,6 +80,16 @@ def _synthetic_returns() -> pd.DataFrame:
     )
 
 
+def _long_returns(n: int = 252, seed: int = 0) -> pd.DataFrame:
+    """One year of synthetic daily returns — enough for reliable Sharpe/CAGR statistics."""
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range('2023-01-02', periods=n)
+    return pd.DataFrame(
+        {'AXP': rng.normal(0.0005, 0.012, n), 'SPY': rng.normal(0.0004, 0.009, n)},
+        index=idx,
+    )
+
+
 def test_compute_analysis_returns_frozen_dataclass_with_expected_shape():
     result = compute_analysis(
         returns          = _synthetic_returns(),
@@ -98,6 +108,21 @@ def test_compute_analysis_returns_frozen_dataclass_with_expected_shape():
 
     expected_total = (1.01 * 1.0 * 0.995) - 1
     assert result.portfolio.total_return == pytest.approx(expected_total)
+
+
+def test_sharpe_ci_is_finite_and_ordered_with_adequate_history():
+    result = compute_analysis(
+        returns          = _long_returns(),
+        weights          = {'AXP': 1.0},
+        benchmark        = 'SPY',
+        risk_free_rate   = 0.045,
+        transaction_cost = 0.0,
+        rolling_window   = None,
+    )
+    lo, hi = result.portfolio.sharpe_ci
+    assert np.isfinite(lo) and np.isfinite(hi), f"CI bounds must be finite, got ({lo}, {hi})"
+    assert lo < hi, f"CI lower bound must be less than upper, got ({lo}, {hi})"
+    assert np.isfinite(result.portfolio.annual_return), "CAGR must be finite with 1Y of data"
 
 
 def test_compute_analysis_rejects_missing_columns():

@@ -6,7 +6,6 @@ Output: docs/dashboard-preview.gif
 """
 
 import io
-import math
 from pathlib import Path
 
 from PIL import Image
@@ -17,71 +16,27 @@ from generate_preview import write_preview_html
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.gif"
 VIEWPORT = {"width": 1280, "height": 720}
 INITIAL_WAIT_MS = 600   # Three.js CDN load + first render
-FRAME_INTERVAL_MS = 100  # ~10fps → 8s loop
-
-# Phase lengths in frames. FRAME_COUNT is derived so the sum is the single
-# source of truth — changing any phase automatically updates the total.
-_TOP_HOLD, _SCROLL_DOWN, _WATCHLIST_HOLD, _REVEAL, _ANALYSIS_HOLD, _SCROLL_UP = 12, 25, 6, 10, 16, 11
-FRAME_COUNT = _TOP_HOLD + _SCROLL_DOWN + _WATCHLIST_HOLD + _REVEAL + _ANALYSIS_HOLD + _SCROLL_UP
-
-_P1 = _TOP_HOLD
-_P2 = _P1 + _SCROLL_DOWN
-_P3 = _P2 + _WATCHLIST_HOLD
-_P4 = _P3 + _REVEAL
-_P5 = _P4 + _ANALYSIS_HOLD
+FRAME_COUNT = 45
+FRAME_INTERVAL_MS = 80  # ~12fps → 3.6s loop
 
 
-def _ease(t: float) -> float:
-    return (1 - math.cos(math.pi * t)) / 2
-
-
-def _scroll_y(frame: int, total_scroll: int, analysis_top: int) -> int:
-    if frame < _P1:
-        return 0
-    elif frame < _P2:
-        return int(_ease((frame - _P1) / _SCROLL_DOWN) * total_scroll)
-    elif frame < _P3:
-        return total_scroll
-    elif frame < _P4:
-        return -1  # scrollIntoView is driving; don't interfere
-    elif frame < _P5:
-        return analysis_top
-    else:
-        t = (frame - _P5) / _SCROLL_UP
-        return int(analysis_top * (1 - _ease(t)))
-
-
-def _bbox_at(bbox: dict, x_pct: float, y_pct: float) -> tuple[float, float]:
+def _bounding_box_center_offset(bbox: dict, x_pct: float, y_pct: float) -> tuple[float, float]:
     return bbox["x"] + bbox["width"] * x_pct, bbox["y"] + bbox["height"] * y_pct
 
 
 def capture_frames(page: Page) -> list[Image.Image]:
-    total_scroll: int = page.evaluate(
-        "document.documentElement.scrollHeight - window.innerHeight"
-    )
-    analysis_top: int = page.evaluate(
-        "document.getElementById('analysis-panel').offsetTop"
-    )
+    frames: list[Image.Image] = []
+
     portfolio_bbox = page.locator("#chart-portfolio canvas").bounding_box()
-    savings_bbox   = page.locator("#chart-savings canvas").bounding_box()
+    savings_bbox = page.locator("#chart-savings canvas").bounding_box()
 
-    frames  = []
-    clicked = False
     for i in range(FRAME_COUNT):
-        y = _scroll_y(i, total_scroll, analysis_top)
-        if y >= 0:
-            page.evaluate("(y) => window.scrollTo(0, y)", y)
-
-        if i == _P1 // 3 and portfolio_bbox:
-            page.mouse.move(*_bbox_at(portfolio_bbox, 0.7, 0.5))
-        elif i == (_P1 * 2) // 3 and savings_bbox:
-            page.mouse.move(*_bbox_at(savings_bbox, 0.3, 0.5))
-
-        if i == _P2 and not clicked:
-            wl_locator = page.locator('.wl-name')
-            if wl_locator.count() > 0:
-                wl_locator.first.click()
-                clicked = True
+        # Hover into portfolio ring outer slice to trigger particle/glow effects
+        if i == FRAME_COUNT // 3 and portfolio_bbox:
+            page.mouse.move(*_bounding_box_center_offset(portfolio_bbox, 0.70, 0.50))
+        # Shift hover to savings ring
+        elif i == (FRAME_COUNT * 2) // 3 and savings_bbox:
+            page.mouse.move(*_bounding_box_center_offset(savings_bbox, 0.30, 0.50))
 
         raw = page.screenshot()
         frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
@@ -92,12 +47,11 @@ def capture_frames(page: Page) -> list[Image.Image]:
 
 def assemble_gif(frames: list[Image.Image]) -> None:
     if not frames:
-        raise ValueError("at least one frame required")
-    # Derive palette from the midpoint frame so both the top (3D rings) and
-    # bottom (watchlist / analysis) color ranges are represented; all frames
-    # share one palette so there is no per-frame flicker across the loop.
-    palette = frames[len(frames) // 2].quantize(colors=128, method=Image.Quantize.MEDIANCUT)
-    quantized = [f.quantize(palette=palette) for f in frames]
+        raise ValueError("No frames captured — GIF assembly aborted")
+    # Derive a single palette from the first frame; quantize all frames against it
+    # so colors stay consistent across the loop (no per-frame palette flicker).
+    palette_ref = frames[0].quantize(colors=200, method=Image.Quantize.MEDIANCUT)
+    quantized = [palette_ref] + [f.quantize(palette=palette_ref) for f in frames[1:]]
 
     DOCS_OUT.parent.mkdir(parents=True, exist_ok=True)
     quantized[0].save(
@@ -111,13 +65,13 @@ def assemble_gif(frames: list[Image.Image]) -> None:
 
 
 def main() -> None:
-    html_path = write_preview_html()
+    html_path = write_preview_html()  # animations enabled
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch()
         page = browser.new_page(viewport=VIEWPORT)
         page.goto(html_path.as_uri())
-        page.wait_for_load_state("networkidle")
+        page.wait_for_load_state("networkidle")  # ensure Three.js CDN script loads
         page.wait_for_timeout(INITIAL_WAIT_MS)
         frames = capture_frames(page)
         browser.close()

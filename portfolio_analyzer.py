@@ -448,7 +448,7 @@ class PortfolioAnalyzer:
         if missing:
             raise ValueError(f"Missing data for tickers: {', '.join(sorted(missing))}")
 
-        prices = prices.ffill(limit=5)
+        prices = prices.ffill(limit=5)  # 5-day limit = one US trading week; covers weekends + 1 holiday
 
         original_len = len(prices)
         first_valid  = {col: prices[col].first_valid_index() for col in prices.columns}

@@ -8,7 +8,6 @@ All other modules receive price data as plain dicts.
 from __future__ import annotations
 
 import json
-import logging
 import os
 import re
 import sys
@@ -22,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-HOLIDAY_WINDOW_DAYS = 7  # lookback window to find the prior close around a target date
+LOOKBACK_DAYS = 7  # look back up to 7 calendar days to find the prior trading close
 
 from config import DATA_DIR
 _DESC_CACHE_FILE = DATA_DIR / 'watchlist_descriptions_cache.json'
@@ -33,7 +32,7 @@ def _load_desc_cache() -> dict[str, Any]:
     if _DESC_CACHE_FILE.exists():
         try:
             return json.loads(_DESC_CACHE_FILE.read_text())
-        except Exception:
+        except (FileNotFoundError, json.JSONDecodeError):
             pass
     return {}
 
@@ -81,7 +80,12 @@ def _rewrite_description(raw: str, ticker: str) -> str:
             }],
         )
         return msg.content[0].text.strip()
-    except Exception:
+    except Exception as exc:
+        print(
+            f"  Warning: could not rewrite description for {ticker} "
+            f"({type(exc).__name__}): {exc}",
+            file=sys.stderr,
+        )
         return _first_sentences(raw)
 
 
@@ -150,14 +154,17 @@ def fetch_prices_batch(tickers: list[str]) -> dict[str, float]:
     }
     missing = [t for t in tickers if t not in prices]
     if missing:
-        logging.warning("price unavailable for %s", ', '.join(missing))
+        print(f"  Warning: price unavailable for {', '.join(missing)}", file=sys.stderr)
     return prices
 
 
 def fetch_historical_price(ticker: str, date_str: str) -> float:
     """Closing price on or nearest to date_str; weekends/holidays resolve to the prior trading day."""
-    target = date.fromisoformat(date_str)
-    start  = (target - timedelta(days=HOLIDAY_WINDOW_DAYS)).isoformat()
+    try:
+        target = date.fromisoformat(date_str)
+    except ValueError as exc:
+        raise PriceFetchError(f"Invalid date '{date_str}': {exc}") from exc
+    start  = (target - timedelta(days=LOOKBACK_DAYS)).isoformat()
     end    = (target + timedelta(days=1)).isoformat()
 
     with yf_warnings():
@@ -277,7 +284,11 @@ def fetch_watchlist_info(tickers: list[str]) -> dict[str, dict[str, str]]:
                 }
                 dirty = True
             except Exception as exc:
-                logging.warning("Could not fetch info for %s: %s: %s", ticker, type(exc).__name__, exc)
+                print(
+                    f"  Warning: could not fetch info for {ticker} "
+                    f"({type(exc).__name__}): {exc}",
+                    file=sys.stderr,
+                )
                 result[ticker] = {'description': '', 'sector': ''}
 
     if dirty:

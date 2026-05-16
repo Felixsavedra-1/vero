@@ -6,9 +6,9 @@ import math
 
 from ledger import Holding, Transaction
 
-_W_HOLDINGS = 100
-_W_GAINS    = 76
-_W_HISTORY  = 88
+_WIDTH_HOLDINGS = 100
+_WIDTH_GAINS    = 76
+_WIDTH_HISTORY  = 88
 
 
 def _pct(val: float) -> str:
@@ -29,12 +29,18 @@ def _pnl_cell(dollars: float, pct: float) -> str:
     return f'{_signed_dollar(dollars)} ({_pct(pct)})'
 
 
-def _div(width: int) -> str:
+def _divider(width: int) -> str:
     return '─' * width
 
 
-def _label(s: str, width: int = 22) -> str:
+def _fit_label(s: str, width: int = 22) -> str:
     return s[:width - 3] + '...' if len(s) > width else s
+
+
+def _calc_gain(value: float, cost: float) -> tuple[float, float]:
+    """Returns (gain_dollar, gain_pct). gain_pct is nan when cost is zero."""
+    gain_dollar = round(value - cost, 2)
+    return gain_dollar, gain_dollar / cost if cost else float('nan')
 
 
 def _is_priceable(ticker: str, prices: dict[str, float], h: Holding) -> bool:
@@ -60,33 +66,32 @@ def render_holdings(
 
     lines: list[str] = [
         '',
-        _div(_W_HOLDINGS),
+        _divider(_WIDTH_HOLDINGS),
         f"  {'Ticker':<10} {'Name':<22} {'Shares':>9}  {'Avg $':>9}  "
         f"{'Invested':>10}  {'Value':>10}  {'P&L':>22}  {'Wt':>5}  Since",
-        _div(_W_HOLDINGS),
+        _divider(_WIDTH_HOLDINGS),
     ]
 
     for ticker, h in holdings.items():
         if ticker not in market_values:
             lines.append(
-                f'  {ticker:<10} {_label(h.label):<22} {"—":>9}  {"—":>9}  '
+                f'  {ticker:<10} {_fit_label(h.label):<22} {"—":>9}  {"—":>9}  '
                 f'{_dollar(h.cost):>10}  {"n/a":>10}  {"n/a":>22}  {"—":>5}  {h.start_date}'
             )
             continue
 
-        value       = market_values[ticker]
-        gain_dollar = round(value - h.cost, 2)
-        gain_pct    = gain_dollar / h.cost if h.cost else float('nan')
-        weight      = value / total_value if total_value else 0.0
+        value               = market_values[ticker]
+        gain_dollar, gain_pct = _calc_gain(value, h.cost)
+        weight              = value / total_value if total_value else 0.0
 
         lines.append(
-            f'  {ticker:<10} {_label(h.label):<22} {h.shares:>9.4f}  {h.avg_cost_per_share:>9.2f}  '
+            f'  {ticker:<10} {_fit_label(h.label):<22} {h.shares:>9.4f}  {h.avg_cost_per_share:>9.2f}  '
             f'{_dollar(h.cost):>10}  {_dollar(value):>10}  '
             f'{_pnl_cell(gain_dollar, gain_pct):>22}  '
             f'{weight:>4.0%}  {h.start_date}'
         )
 
-    lines.append(_div(_W_HOLDINGS))
+    lines.append(_divider(_WIDTH_HOLDINGS))
 
     if total_value > 0:
         total_gain     = total_value - total_invested
@@ -117,7 +122,7 @@ def render_gains(
     filter_label = f' — {ticker}' if ticker else ''
 
     lines.append(f'REALIZED GAINS  (from completed sells){filter_label}')
-    lines.append(_div(_W_GAINS))
+    lines.append(_divider(_WIDTH_GAINS))
 
     sells = [
         t for t in transactions
@@ -132,7 +137,7 @@ def render_gains(
         lines.append(
             f"  {'Date':<12} {'Ticker':<10} {'Shares':>9}  {'Proceeds':>10}  {'P&L':>14}"
         )
-        lines.append(_div(_W_GAINS))
+        lines.append(_divider(_WIDTH_GAINS))
         for txn in sells:
             assert txn.realized_pnl is not None
             total_realized += txn.realized_pnl
@@ -140,10 +145,10 @@ def render_gains(
                 f'  {txn.timestamp[:10]:<12} {txn.ticker:<10} {txn.shares:>9.4f}  '
                 f'{_dollar(txn.dollars):>10}  {_signed_dollar(txn.realized_pnl):>14}'
             )
-        lines.append(_div(_W_GAINS))
+        lines.append(_divider(_WIDTH_GAINS))
         lines.append(f'  {"Total realized":.<30} {_signed_dollar(total_realized):>14}')
 
-    lines += ['', f'UNREALIZED GAINS  (live prices){filter_label}', _div(_W_GAINS)]
+    lines += ['', f'UNREALIZED GAINS  (live prices){filter_label}', _divider(_WIDTH_GAINS)]
 
     filtered_holdings = {
         t: h for t, h in holdings.items()
@@ -161,28 +166,27 @@ def render_gains(
             f"  {'Ticker':<10} {'Name':<22} {'Shares':>9}  {'Cost Basis':>10}  "
             f"{'Value':>10}  {'Gain':>22}"
         )
-        lines.append(_div(_W_GAINS))
+        lines.append(_divider(_WIDTH_GAINS))
         for t, h in filtered_holdings.items():
             if not _is_priceable(t, prices, h):
                 lines.append(
-                    f'  {t:<10} {_label(h.label):<22} {"—":>9}  '
+                    f'  {t:<10} {_fit_label(h.label):<22} {"—":>9}  '
                     f'{_dollar(h.cost):>10}  {"n/a":>10}  {"n/a":>22}'
                 )
                 total_cost += h.cost
                 continue
-            price            = prices[t]  # safe: _is_priceable checks t in prices
-            value            = h.shares * price
-            gain_dollar      = round(value - h.cost, 2)
-            gain_pct         = gain_dollar / h.cost if h.cost else float('nan')
+            price                 = prices[t]  # safe: _is_priceable checks t in prices
+            value                 = h.shares * price
+            gain_dollar, gain_pct = _calc_gain(value, h.cost)
             total_cost      += h.cost
             total_value     += value
             total_unrealized += gain_dollar
             lines.append(
-                f'  {t:<10} {_label(h.label):<22} {h.shares:>9.4f}  '
+                f'  {t:<10} {_fit_label(h.label):<22} {h.shares:>9.4f}  '
                 f'{_dollar(h.cost):>10}  {_dollar(value):>10}  '
                 f'{_pnl_cell(gain_dollar, gain_pct):>22}'
             )
-        lines.append(_div(_W_GAINS))
+        lines.append(_divider(_WIDTH_GAINS))
         if total_value > 0:
             unrealized_pct = total_unrealized / total_cost if total_cost else float('nan')
             lines.append(
@@ -196,7 +200,7 @@ def render_gains(
     lines += [
         '',
         'SUMMARY',
-        _div(_W_GAINS),
+        _divider(_WIDTH_GAINS),
         f'  Realized:    {_signed_dollar(total_realized)}',
         f'  Unrealized:  {_signed_dollar(total_unrealized)}',
         f'  Combined:    {_signed_dollar(combined)}',
@@ -224,10 +228,10 @@ def render_history(
 
     lines: list[str] = [
         '',
-        _div(_W_HISTORY),
+        _divider(_WIDTH_HISTORY),
         f"  {'Timestamp':<22} {'Action':<6} {'Ticker':<10} {'Shares':>9}  "
         f"{'Dollars':>9}  {'Price':>10}  {'P&L':>12}  Notes",
-        _div(_W_HISTORY),
+        _divider(_WIDTH_HISTORY),
     ]
 
     for t in rows:
@@ -238,7 +242,7 @@ def render_history(
             f'{t.dollars:>9.2f}  {t.price:>10.2f}  {pnl:>12}  {t.notes}'
         )
 
-    lines.append(_div(_W_HISTORY))
+    lines.append(_divider(_WIDTH_HISTORY))
     n = len(rows)
     lines.append(f'  {n} transaction{"s" if n != 1 else ""}')
     lines.append('')

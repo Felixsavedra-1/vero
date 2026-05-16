@@ -1,11 +1,18 @@
 """metrics.py — Shared financial metric calculations."""
 
 import math
-from typing import Any
+from typing import Any, TypedDict
 
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+
+class RiskSnapshot(TypedDict):
+    sharpe:       float
+    sharpe_ci:    tuple[float, float]
+    volatility:   float
+    max_drawdown: float
 
 from config import TRADING_DAYS_PER_YEAR
 from ledger import Holding
@@ -59,26 +66,26 @@ def risk_snapshot(
     returns: pd.Series,
     risk_free_rate: float,
     min_observations: int,
-) -> dict[str, Any]:
-    """Returns {} if history is insufficient."""
+) -> RiskSnapshot | dict[str, object]:
+    """Returns {} if history is insufficient or volatility is zero."""
     trailing = returns.iloc[-TRADING_DAYS_PER_YEAR:].dropna()
     if len(trailing) < min_observations:
         return {}
 
-    annual_vol = trailing.std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
-    if annual_vol == 0:
+    sharpe = annualized_sharpe(trailing, risk_free_rate)
+    if not np.isfinite(sharpe):
         return {}
 
-    sharpe     = annualized_sharpe(trailing, risk_free_rate)
+    annual_vol = trailing.std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
     ci         = sharpe_ci(trailing, sharpe)
     cumulative = (1 + trailing).cumprod()
 
-    return {
-        'sharpe':       sharpe,
-        'sharpe_ci':    ci,
-        'volatility':   annual_vol,
-        'max_drawdown': max_drawdown(cumulative),
-    }
+    return RiskSnapshot(
+        sharpe=sharpe,
+        sharpe_ci=ci,
+        volatility=annual_vol,
+        max_drawdown=max_drawdown(cumulative),
+    )
 
 
 def cost_basis_weights(holdings: dict[str, Holding]) -> dict[str, float]:

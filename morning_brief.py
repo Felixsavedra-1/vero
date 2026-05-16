@@ -34,7 +34,7 @@ from ledger import (
     _payment_dates, accrued_interest, projected_next_payment,
     load_holdings, load_savings,
 )
-from metrics import cost_basis_weights, momentum_signal, risk_snapshot as _compute_risk_snapshot
+from metrics import RiskSnapshot, cost_basis_weights, momentum_signal, risk_snapshot as _compute_risk_snapshot
 from prices import yf_warnings
 
 logger = logging.getLogger(__name__)
@@ -138,7 +138,7 @@ class MorningBrief:
             return 'today'
         if delta == 1:
             return 'yesterday'
-        return f'as of {last.strftime("%b %-d")}'
+        return f'as of {last.strftime("%b")} {last.day}'
 
     def _portfolio_return_series(self) -> pd.Series:
         """dropna(how='any') aligns to equity trading days, excluding BTC weekend sessions."""
@@ -152,7 +152,7 @@ class MorningBrief:
         w      /= w.sum()
         return daily.mul(w, axis=1).sum(axis=1)
 
-    def _risk_snapshot(self) -> dict:
+    def _risk_snapshot(self) -> RiskSnapshot | dict[str, object]:
         return _compute_risk_snapshot(
             self._portfolio_return_series(),
             self.risk_free_rate,
@@ -203,13 +203,17 @@ class MorningBrief:
         sign = '+' if val >= 0 else '-'
         return f'{sign}${abs(val):.2f}'
 
-    _DIV = '─' * 76
-    _BAR = '═' * 68
+    _DIV_WIDTH = 76
+    _BAR_WIDTH = 68
+    _DIV = '─' * _DIV_WIDTH
+    _BAR = '═' * _BAR_WIDTH
 
     def render(self) -> None:
         now = datetime.now(ET)
         print(f'\n{self._BAR}')
-        print(f"  Vero  ·  {now.strftime('%A, %B %-d, %Y  %-I:%M %p ET')}")
+        hour = now.hour % 12 or 12
+        ampm = 'AM' if now.hour < 12 else 'PM'
+        print(f"  Vero  ·  {now.strftime('%A, %B')} {now.day}, {now.year}  {hour}:{now.strftime('%M')} {ampm} ET")
         print(f"  {_BRAND}@vedra&co{_RESET}")
         print(self._BAR)
         if self._savings:
@@ -272,10 +276,11 @@ class MorningBrief:
     def _render_portfolio(self) -> None:
         current_value  = self._current_portfolio_value()
         total_invested = sum(h.cost for h in self.holdings.values())
-        start_label    = (
-            datetime.strptime(min(h.start_date for h in self.holdings.values()), '%Y-%m-%d').strftime('%b %-d, %Y')
-            if self.holdings else '—'
-        )
+        if self.holdings:
+            start_dt    = datetime.strptime(min(h.start_date for h in self.holdings.values()), '%Y-%m-%d')
+            start_label = f'{start_dt.strftime("%b")} {start_dt.day}, {start_dt.year}'
+        else:
+            start_label = '—'
 
         print(f'\n{_BRAND}Portfolio{_RESET}\n')
         print(f'  Value     ${current_value:,.2f}')

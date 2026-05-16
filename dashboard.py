@@ -9,7 +9,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from config import DATA_DIR, GOALS_FILE, HOLDINGS_FILE, INTEREST_PAYMENT_DAY, MOMENTUM_FLAT_BAND, SAVINGS_FILE, WATCHLIST
-from ledger import _payment_dates, accrued_interest, projected_next_payment, load_goals, load_holdings, load_savings
+from ledger import (
+    Holding,
+    GOAL_KEY_PORTFOLIO, GOAL_KEY_SAVINGS,
+    _payment_dates, accrued_interest, projected_next_payment,
+    load_goals, load_holdings, load_savings,
+)
 from metrics import momentum_signal
 from prices import fetch_prices_batch, fetch_prices_with_change, fetch_watchlist_history, fetch_watchlist_info
 
@@ -31,11 +36,11 @@ def _compute_signal(history: dict, flat_band: float) -> dict:
 
 
 def _build_holdings_data(
-    holdings: dict,
-    prices: dict,
-    prev_prices: dict,
-    holding_history: dict | None = None,
-) -> tuple[list[dict], float, float]:
+    holdings: dict[str, Holding],
+    prices: dict[str, float],
+    prev_prices: dict[str, float],
+    holding_history: dict[str, dict[str, list[float]]] | None = None,
+) -> tuple[list[dict[str, object]], float, float]:
     """Compute per-holding rows with gain, day-change, and 1M sparkline data."""
     rows = []
     portfolio_value = 0.0
@@ -56,10 +61,10 @@ def _build_holdings_data(
             continue
         value          = h.shares * price
         gain_dollar    = value - h.cost
-        gain_pct       = (gain_dollar / h.cost * 100) if h.cost > 0 else 0.0
-        prev           = prev_prices.get(ticker, price)
+        gain_pct          = (gain_dollar / h.cost * 100) if h.cost > 0 else None
+        prev              = prev_prices.get(ticker, price)
         day_change_dollar = (price - prev) * h.shares
-        day_change_pct    = (price - prev) / prev * 100 if prev else 0.0
+        day_change_pct    = (price - prev) / prev * 100 if prev else None
         portfolio_value += value
         rows.append({
             "ticker":            ticker,
@@ -68,10 +73,10 @@ def _build_holdings_data(
             "cost":              round(h.cost, 2),
             "price":             round(price, 2),
             "value":             round(value, 2),
-            "gain_pct":          round(gain_pct, 2),
+            "gain_pct":          round(gain_pct, 2) if gain_pct is not None else None,
             "gain_dollar":       round(gain_dollar, 2),
             "day_change_dollar": round(day_change_dollar, 2),
-            "day_change_pct":    round(day_change_pct, 2),
+            "day_change_pct":    round(day_change_pct, 2) if day_change_pct is not None else None,
             "history_1m":        history.get(ticker, {}).get('1M', []),
         })
     return rows, portfolio_value, total_cost
@@ -135,7 +140,10 @@ def _build_watchlist_data() -> list[dict]:
     return rows
 
 
-def build_payload(prices: dict | None = None, prev_prices: dict | None = None) -> dict:
+def build_payload(
+    prices: dict[str, float] | None = None,
+    prev_prices: dict[str, float] | None = None,
+) -> dict[str, object]:
     """Assemble the full dashboard data payload from holdings, savings, and watchlist."""
     holdings    = load_holdings(HOLDINGS_FILE)
     savings_acc = load_savings(SAVINGS_FILE)
@@ -155,8 +163,8 @@ def build_payload(prices: dict | None = None, prev_prices: dict | None = None) -
     savings_rows, savings_total, total_accrued = _build_savings_data(savings_acc, date.today())
 
     total_gain_pct = ((portfolio_value - total_cost) / total_cost * 100) if total_cost > 0 else 0.0
-    portfolio_goal = goals.get("__portfolio__")
-    savings_goal   = goals.get("__savings__")
+    portfolio_goal = goals.get(GOAL_KEY_PORTFOLIO)
+    savings_goal   = goals.get(GOAL_KEY_SAVINGS)
 
     return {
         "generated": datetime.now(timezone.utc).isoformat(),
@@ -183,9 +191,16 @@ def _embed_chart() -> str:
     return "data:image/png;base64," + base64.b64encode(ANALYSIS_PNG.read_bytes()).decode()
 
 
-def build_html(payload: dict) -> Path:
-    injected = TEMPLATE.read_text().replace(
-        "// __DASH_DATA_PLACEHOLDER__",
+def build_html(payload: dict[str, object]) -> Path:
+    template    = TEMPLATE.read_text()
+    placeholder = "// __DASH_DATA_PLACEHOLDER__"
+    if template.count(placeholder) != 1:
+        raise RuntimeError(
+            f"Expected exactly 1 occurrence of '{placeholder}' in template, "
+            f"found {template.count(placeholder)}."
+        )
+    injected = template.replace(
+        placeholder,
         f"window.__DASH__ = {json.dumps(payload, indent=2)};",
     )
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)

@@ -4,6 +4,8 @@ tests/test_display.py — Unit tests for display.py.
 All tests inject static data structures — no network, no disk.
 """
 
+import re
+
 import pytest
 
 from display import render_gains, render_history, render_holdings
@@ -88,8 +90,9 @@ class TestRenderHoldings:
             'IAU': _holding('IAU', 5.0, 100.0, 'Gold'),
         }
         out = render_holdings(holdings, {'AXP': 120.0, 'IAU': 25.0})
-        assert ' 66%' in out
-        assert ' 34%' in out
+        pcts = [int(m.group(1)) for m in re.finditer(r'\b(\d+)%', out)]
+        assert 66 in pcts, f"Expected 66% weight for AXP in: {pcts}"
+        assert 34 in pcts, f"Expected 34% weight for IAU in: {pcts}"
 
     def test_all_prices_missing_shows_na_for_all(self):
         holdings = {

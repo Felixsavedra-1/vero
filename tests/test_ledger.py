@@ -275,8 +275,9 @@ class TestSavingsIO:
         assert load_savings(path) == []
 
     def test_monthly_interest_property(self):
-        a = SavingsAccount(name='Test', balance=12_000.00, apy=0.04)
-        assert a.monthly_interest == pytest.approx(40.0)  # 12000 * 0.04 / 12
+        balance, apy = 12_000.00, 0.04
+        a = SavingsAccount(name='Test', balance=balance, apy=apy)
+        assert a.monthly_interest == pytest.approx(balance * apy / 12)
 
     def test_creates_parent_directory(self, tmp_path):
         path = tmp_path / 'nested' / 'savings.json'

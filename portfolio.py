@@ -12,6 +12,7 @@ from config import BRIEF_TIMEZONE, GOALS_FILE, HOLDINGS_FILE, INTEREST_PAYMENT_D
 from display import render_gains, render_history, render_holdings
 from ledger import (
     Holding, SavingsAccount, Transaction,
+    GOAL_KEY_PORTFOLIO, GOAL_KEY_SAVINGS,
     _payment_dates, accrued_interest, projected_next_payment,
     append_transaction, load_goals, load_holdings, load_savings,
     load_transactions, save_goals, save_holdings, save_savings,
@@ -45,13 +46,11 @@ def _resolve_price(ticker: str, explicit: float | None, date_str: str | None = N
     if explicit is not None:
         return explicit
     if date_str is not None:
-        print(f'  Fetching {ticker} price for {date_str}...', end=' ', flush=True)
         price = fetch_historical_price(ticker, date_str)
-        print(f'${price:,.2f}')
+        print(f'  Fetched {ticker} price for {date_str}: ${price:,.2f}')
         return price
-    print(f'  Fetching price for {ticker}...', end=' ', flush=True)
     price = fetch_price(ticker)
-    print(f'${price:,.2f}')
+    print(f'  Fetched price for {ticker}: ${price:,.2f}')
     return price
 
 
@@ -141,7 +140,7 @@ def cmd_sell(args: argparse.Namespace) -> None:
 
     shares = round(dollars / price, SHARE_DECIMALS)
 
-    if shares > h.shares + EPSILON:
+    if shares > h.shares * (1 + EPSILON):
         sys.exit(
             f'Cannot sell {shares:.4f} shares — only {h.shares:.4f} held.\n'
             f'To sell everything: portfolio sell {ticker} {h.shares * price:.2f}'
@@ -308,14 +307,15 @@ def cmd_savings_interest(_args: argparse.Namespace) -> None:
 
 def cmd_goal_set(args: argparse.Namespace) -> None:
     goals = load_goals(GOALS_FILE)
-    goals[f'__{args.target}__'] = args.amount
+    key   = GOAL_KEY_PORTFOLIO if args.target == 'portfolio' else GOAL_KEY_SAVINGS
+    goals[key] = args.amount
     save_goals(goals, GOALS_FILE)
     print(f'\n  Goal set: {args.target} → ${args.amount:,.0f}\n')
 
 
 def cmd_goal_remove(args: argparse.Namespace) -> None:
     goals = load_goals(GOALS_FILE)
-    key   = f'__{args.target}__'
+    key   = GOAL_KEY_PORTFOLIO if args.target == 'portfolio' else GOAL_KEY_SAVINGS
     if key in goals:
         del goals[key]
         save_goals(goals, GOALS_FILE)
@@ -326,8 +326,8 @@ def cmd_goal_remove(args: argparse.Namespace) -> None:
 
 def cmd_goal_show(_args: argparse.Namespace) -> None:
     goals = load_goals(GOALS_FILE)
-    pg    = goals.get('__portfolio__')
-    sg    = goals.get('__savings__')
+    pg    = goals.get(GOAL_KEY_PORTFOLIO)
+    sg    = goals.get(GOAL_KEY_SAVINGS)
     print()
     print(f'  Portfolio goal:  {f"${pg:,.0f}" if pg is not None else "not set"}')
     print(f'  Savings goal:    {f"${sg:,.0f}" if sg is not None else "not set"}')
