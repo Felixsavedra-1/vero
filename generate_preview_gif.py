@@ -21,27 +21,34 @@ FRAME_INTERVAL_MS = 100  # ~10fps → 8s loop
 
 # Phase lengths in frames. FRAME_COUNT is derived so the sum is the single
 # source of truth — changing any phase automatically updates the total.
-_TOP_HOLD, _SCROLL_DOWN, _BOTTOM_HOLD, _SCROLL_UP = 15, 40, 15, 10
-FRAME_COUNT = _TOP_HOLD + _SCROLL_DOWN + _BOTTOM_HOLD + _SCROLL_UP
+_TOP_HOLD, _SCROLL_DOWN, _WATCHLIST_HOLD, _REVEAL, _ANALYSIS_HOLD, _SCROLL_UP = 12, 25, 6, 10, 16, 11
+FRAME_COUNT = _TOP_HOLD + _SCROLL_DOWN + _WATCHLIST_HOLD + _REVEAL + _ANALYSIS_HOLD + _SCROLL_UP
 
-_TOP_END    = _TOP_HOLD
-_DOWN_END   = _TOP_HOLD + _SCROLL_DOWN
-_BOTTOM_END = _TOP_HOLD + _SCROLL_DOWN + _BOTTOM_HOLD
+_P1 = _TOP_HOLD
+_P2 = _P1 + _SCROLL_DOWN
+_P3 = _P2 + _WATCHLIST_HOLD
+_P4 = _P3 + _REVEAL
+_P5 = _P4 + _ANALYSIS_HOLD
 
 
 def _ease(t: float) -> float:
     return (1 - math.cos(math.pi * t)) / 2
 
 
-def _scroll_y(frame: int, total: int) -> int:
-    if frame < _TOP_END:
+def _scroll_y(frame: int, total_scroll: int, analysis_top: int) -> int:
+    if frame < _P1:
         return 0
-    elif frame < _DOWN_END:
-        return int(_ease((frame - _TOP_END) / _SCROLL_DOWN) * total)
-    elif frame < _BOTTOM_END:
-        return total
+    elif frame < _P2:
+        return int(_ease((frame - _P1) / _SCROLL_DOWN) * total_scroll)
+    elif frame < _P3:
+        return total_scroll
+    elif frame < _P4:
+        return -1  # scrollIntoView is driving; don't interfere
+    elif frame < _P5:
+        return analysis_top
     else:
-        return int((1 - _ease((frame - _BOTTOM_END) / _SCROLL_UP)) * total)
+        t = (frame - _P5) / _SCROLL_UP
+        return int(analysis_top * (1 - _ease(t)))
 
 
 def _bbox_at(bbox: dict, x_pct: float, y_pct: float) -> tuple[float, float]:
@@ -52,18 +59,29 @@ def capture_frames(page: Page) -> list[Image.Image]:
     total_scroll: int = page.evaluate(
         "document.documentElement.scrollHeight - window.innerHeight"
     )
+    analysis_top: int = page.evaluate(
+        "document.getElementById('analysis-panel').offsetTop"
+    )
     portfolio_bbox = page.locator("#chart-portfolio canvas").bounding_box()
-    savings_bbox = page.locator("#chart-savings canvas").bounding_box()
+    savings_bbox   = page.locator("#chart-savings canvas").bounding_box()
 
-    frames = []
+    frames  = []
+    clicked = False
     for i in range(FRAME_COUNT):
-        page.evaluate("(y) => window.scrollTo(0, y)", _scroll_y(i, total_scroll))
+        y = _scroll_y(i, total_scroll, analysis_top)
+        if y >= 0:
+            page.evaluate("(y) => window.scrollTo(0, y)", y)
 
-        # Hover the outer arc of each ring during the top-hold phase
-        if i == _TOP_HOLD // 3 and portfolio_bbox:
+        if i == _P1 // 3 and portfolio_bbox:
             page.mouse.move(*_bbox_at(portfolio_bbox, 0.7, 0.5))
-        elif i == (_TOP_HOLD * 2) // 3 and savings_bbox:
+        elif i == (_P1 * 2) // 3 and savings_bbox:
             page.mouse.move(*_bbox_at(savings_bbox, 0.3, 0.5))
+
+        if i == _P2 and not clicked:
+            wl_locator = page.locator('.wl-name')
+            if wl_locator.count() > 0:
+                wl_locator.first.click()
+                clicked = True
 
         raw = page.screenshot()
         frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
