@@ -66,15 +66,15 @@ def risk_snapshot(
     returns: pd.Series,
     risk_free_rate: float,
     min_observations: int,
-) -> RiskSnapshot | dict[str, object]:
-    """Returns {} if history is insufficient or volatility is zero."""
+) -> RiskSnapshot | None:
+    """Returns None if history is insufficient or volatility is zero."""
     trailing = returns.iloc[-TRADING_DAYS_PER_YEAR:].dropna()
     if len(trailing) < min_observations:
-        return {}
+        return None
 
     sharpe = annualized_sharpe(trailing, risk_free_rate)
     if not np.isfinite(sharpe):
-        return {}
+        return None
 
     annual_vol = trailing.std(ddof=1) * np.sqrt(TRADING_DAYS_PER_YEAR)
     ci         = sharpe_ci(trailing, sharpe)

@@ -148,7 +148,7 @@ class TestRiskSnapshot:
         ci = brief._risk_snapshot()['sharpe_ci']
         assert ci[0] < ci[1]
 
-    def test_too_few_observations_returns_empty_dict(self):
+    def test_too_few_observations_returns_none(self):
         brief = _make_brief()
         dates = pd.date_range('2025-01-02', periods=30, freq='B')
         data = {
@@ -158,15 +158,15 @@ class TestRiskSnapshot:
             'BTC-USD': _price_series(30, seed=4),
         }
         _inject(brief, data, dates)
-        assert brief._risk_snapshot() == {}
+        assert brief._risk_snapshot() is None
 
-    def test_flat_prices_returns_empty_dict(self):
-        """Zero volatility → Sharpe undefined; should return {}."""
+    def test_flat_prices_returns_none(self):
+        """Zero volatility → Sharpe undefined; should return None."""
         brief = _make_brief()
         dates = pd.date_range('2025-01-02', periods=300, freq='B')
         data = {t: np.ones(300) * 100.0 for t in HOLDINGS}
         _inject(brief, data, dates)
-        assert brief._risk_snapshot() == {}
+        assert brief._risk_snapshot() is None
 
 
 # ── Formatting helpers ─────────────────────────────────────────────────────────

@@ -5,8 +5,10 @@ from __future__ import annotations
 import base64
 import json
 import webbrowser
+from collections.abc import Mapping
 from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import cast
 
 from config import DATA_DIR, GOALS_FILE, HOLDINGS_FILE, INTEREST_PAYMENT_DAY, MOMENTUM_FLAT_BAND, SAVINGS_FILE, WATCHLIST
 from ledger import (
@@ -158,7 +160,7 @@ def build_payload(
 
     holding_history = fetch_watchlist_history(tickers) if tickers else {}
     holding_rows, portfolio_value, total_cost = _build_holdings_data(holdings, prices, prev_prices, holding_history)
-    holding_rows.sort(key=lambda r: r["value"] if r["value"] is not None else -1.0, reverse=True)
+    holding_rows.sort(key=lambda r: cast(float, r["value"]) if r["value"] is not None else -1.0, reverse=True)
 
     savings_rows, savings_total, total_accrued = _build_savings_data(savings_acc, date.today())
 
@@ -191,7 +193,7 @@ def _embed_chart() -> str:
     return "data:image/png;base64," + base64.b64encode(ANALYSIS_PNG.read_bytes()).decode()
 
 
-def build_html(payload: dict[str, object]) -> Path:
+def build_html(payload: Mapping[str, object]) -> Path:
     template    = TEMPLATE.read_text()
     placeholder = "// __DASH_DATA_PLACEHOLDER__"
     if template.count(placeholder) != 1:

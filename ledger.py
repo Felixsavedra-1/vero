@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 GOAL_KEY_PORTFOLIO = '__portfolio__'
 GOAL_KEY_SAVINGS   = '__savings__'
@@ -65,7 +66,7 @@ def _coerce_float(value: object, default: float = 0.0) -> float:
     return default if not math.isfinite(v) else v
 
 
-def _load_json(path: Path) -> object:
+def _load_json(path: Path) -> Any:
     with open(path) as f:
         try:
             return json.load(f)
@@ -185,7 +186,7 @@ def save_savings(accounts: list[SavingsAccount], path: Path) -> None:
 def load_goals(path: Path) -> dict[str, float]:
     if not path.exists():
         return {}
-    return _load_json(path)  # type: ignore[return-value]
+    return _load_json(path)
 
 
 def save_goals(goals: dict[str, float], path: Path) -> None:

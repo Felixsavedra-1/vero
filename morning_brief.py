@@ -152,7 +152,7 @@ class MorningBrief:
         w      /= w.sum()
         return daily.mul(w, axis=1).sum(axis=1)
 
-    def _risk_snapshot(self) -> RiskSnapshot | dict[str, object]:
+    def _risk_snapshot(self) -> RiskSnapshot | None:
         return _compute_risk_snapshot(
             self._portfolio_return_series(),
             self.risk_free_rate,
@@ -396,7 +396,7 @@ class MorningBrief:
 
     def _render_risk(self) -> None:
         risk = self._risk_snapshot()
-        if not risk:
+        if risk is None:
             return
         ci     = risk['sharpe_ci']
         ci_str = f"[{ci[0]:.2f}, {ci[1]:.2f}]" if np.isfinite(ci[0]) else 'n/a'

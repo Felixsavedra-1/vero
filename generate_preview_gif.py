@@ -9,18 +9,18 @@ import io
 from pathlib import Path
 
 from PIL import Image
-from playwright.sync_api import sync_playwright, Page
+from playwright.sync_api import FloatRect, ViewportSize, sync_playwright, Page
 
 from generate_preview import write_preview_html
 
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.gif"
-VIEWPORT = {"width": 1280, "height": 720}
+VIEWPORT: ViewportSize = {"width": 1280, "height": 720}
 INITIAL_WAIT_MS = 600   # Three.js CDN load + first render
 FRAME_COUNT = 45
 FRAME_INTERVAL_MS = 80  # ~12fps → 3.6s loop
 
 
-def _bounding_box_center_offset(bbox: dict, x_pct: float, y_pct: float) -> tuple[float, float]:
+def _bounding_box_center_offset(bbox: FloatRect, x_pct: float, y_pct: float) -> tuple[float, float]:
     return bbox["x"] + bbox["width"] * x_pct, bbox["y"] + bbox["height"] * y_pct
 
 
