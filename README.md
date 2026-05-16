@@ -36,33 +36,40 @@ Data lives in `~/.portfolio/`. Created automatically on first use.
 
 ## Commands
 
+### Trades
+
 ```bash
-# Trades
 portfolio buy   TICKER DOLLARS [--date YYYY-MM-DD] [--price P] [--notes "..."]
 portfolio sell  TICKER DOLLARS [--date YYYY-MM-DD] [--price P]
 portfolio show
 portfolio gains   [--ticker TICKER]
 portfolio history [--ticker TICKER] [--limit N]
 portfolio remove  TICKER
+```
 
-# Savings
+`--date` backfills a trade at that day's closing price. Weekends and holidays resolve to the prior trading day.
+
+### Savings
+
+```bash
 portfolio savings set    NAME BALANCE [--apy RATE] [--bank NAME]
 portfolio savings remove NAME
 portfolio savings interest
+```
 
-# Goals
+### Goals
+
+```bash
 portfolio goal set portfolio|savings AMOUNT
 portfolio goal remove portfolio|savings
 portfolio goal show
 ```
 
-`--date` backfills a trade at that day's closing price. Weekends and holidays resolve to the prior trading day.
-
 ---
 
 ## Morning brief
 
-Portfolio value, per-holding returns across 1D / 1W / 1M / YTD, alpha vs. SPY, and a trailing 1-year risk snapshot — one command:
+Portfolio value, per-holding returns (1D / 1W / 1M / YTD), alpha vs SPY, and trailing 1Y risk — one command:
 
 ```
 ════════════════════════════════════════════════════════
@@ -94,9 +101,7 @@ python dashboard.py    # dashboard only
 
 3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker to open a live analysis panel — returns, volatility, drawdown, switchable price chart.
 
-> `brief` and `portfolio` are the installed CLI commands (via `setup.sh`). The `python *.py` forms run scripts directly without installation.
-
-> On headless servers, the dashboard writes to `~/.portfolio/dashboard.html`. Copy or `scp` the file to view it locally.
+`brief` and `portfolio` are installed by `setup.sh`. The `python *.py` forms run scripts directly without installation.
 
 ---
 

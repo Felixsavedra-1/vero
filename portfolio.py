@@ -1,17 +1,4 @@
-"""
-portfolio.py — Investment portfolio tracker.
-
-Usage
------
-  python portfolio.py buy    TICKER DOLLARS [--date YYYY-MM-DD] [--price P] [--notes "..."]
-  python portfolio.py sell   TICKER DOLLARS [--date YYYY-MM-DD] [--price P] [--notes "..."]
-  python portfolio.py show
-  python portfolio.py gains  [--ticker TICKER]
-  python portfolio.py history [--ticker TICKER] [--limit N]
-  python portfolio.py remove TICKER
-
-Data is stored in ~/.portfolio/
-"""
+"""portfolio.py — CLI entry point: buy, sell, show, gains, history, savings, goals."""
 
 from __future__ import annotations
 

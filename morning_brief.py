@@ -1,9 +1,4 @@
-"""
-morning_brief.py — Daily portfolio and market snapshot.
-
-Usage:
-    python morning_brief.py
-"""
+"""morning_brief.py — Daily portfolio and market snapshot."""
 
 from __future__ import annotations
 

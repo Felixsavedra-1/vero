@@ -1,17 +1,7 @@
 """
-portfolio_analyzer.py — Deep portfolio analysis and 6-panel chart.
+portfolio_analyzer.py — Deep analysis: CAGR, Sharpe (Lo 2002 CI), volatility, max drawdown.
 
-Three layers, separated:
-
-    1.  Pure data model:       AssetMetrics, RollingMetrics, AnalysisResult
-    2.  Pure compute:          compute_asset_metrics, compute_rolling_metrics,
-                               compute_analysis  (no I/O, take returns, return dataclass)
-    3.  Pure render:           print_results, plot_dashboard  (take dataclass, write output)
-    4.  Thin coordinator:      PortfolioAnalyzer  (validates inputs, fetches prices,
-                               hands off to the pure layer)
-
-Produces a console tearsheet (CAGR, Sharpe with Lo 2002 CI, volatility,
-max drawdown) and saves a chart to ~/.portfolio/portfolio_analysis.png.
+Pure compute layer (compute_*) is separated from I/O; PortfolioAnalyzer coordinates.
 """
 
 from __future__ import annotations
@@ -35,10 +25,10 @@ from prices import yf_warnings
 
 logger = logging.getLogger(__name__)
 
-WEIGHT_TOLERANCE = 1e-6
+WEIGHT_TOLERANCE   = 1e-6
+_MARKER_SCALE      = 1000
+_ANNOTATION_MARGIN = 1.2
 
-
-# ── Data model ────────────────────────────────────────────────────────────────
 
 @dataclass(frozen=True)
 class AssetMetrics:
@@ -247,7 +237,7 @@ def _plot_risk_return(ax: Axes, result: AnalysisResult) -> None:
     rf_pct = result.risk_free_rate * 100
     for ticker, m in result.individual_assets.items():
         ax.scatter(m.annual_volatility * 100, m.annual_return * 100,
-                   s=result.weights[ticker] * 1000, alpha=0.6, label=ticker)
+                   s=result.weights[ticker] * _MARKER_SCALE, alpha=0.6, label=ticker)
     ax.scatter(result.portfolio.annual_volatility * 100,
                result.portfolio.annual_return * 100,
                s=300, marker='*', color='gold', edgecolors='black',
@@ -261,9 +251,9 @@ def _plot_risk_return(ax: Axes, result: AnalysisResult) -> None:
     bench_vol = result.benchmark.annual_volatility * 100
     bench_ret = result.benchmark.annual_return * 100
     if bench_vol > 0:
-        max_vol = max(m.annual_volatility * 100 for m in result.individual_assets.values()) * 1.2
+        max_vol = max(m.annual_volatility * 100 for m in result.individual_assets.values()) * _ANNOTATION_MARGIN
         slope   = (bench_ret - rf_pct) / bench_vol
-        cml_x   = np.linspace(0, max(max_vol, bench_vol * 1.2), 100)
+        cml_x   = np.linspace(0, max(max_vol, bench_vol * _ANNOTATION_MARGIN), 100)
         ax.plot(cml_x, rf_pct + slope * cml_x, color='#2CA02C',
                 linewidth=1, linestyle=':', alpha=0.7, label='CML')
     ax.set_title('Risk-Return Profile', fontweight='bold')
@@ -378,8 +368,6 @@ class PortfolioAnalyzer:
         self.risk_free_rate   = float(risk_free_rate)
         self.transaction_cost = float(transaction_cost)
         self.start_date, self.end_date = self._resolve_date_range(start_date, end_date)
-
-    # — Normalizers (pure, static) —
 
     @staticmethod
     def _normalize_portfolio(raw: dict[str, float]) -> dict[str, float]:

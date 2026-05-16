@@ -1,6 +1,4 @@
-"""
-metrics.py — Shared financial metric calculations.
-"""
+"""metrics.py — Shared financial metric calculations."""
 
 import math
 from typing import Any
@@ -47,15 +45,7 @@ def momentum_signal(
     r1m: float,
     flat_band: float,
 ) -> tuple[str, str]:
-    """
-    Three-horizon momentum classifier. Single source of truth — both the morning
-    brief and the dashboard call this.
-
-    1M sets the trend; 1D/1W qualify it. NaN inputs ⇒ NEUTRAL.
-        BULLISH  · 1M > +band            ('strong momentum' or 'dip in uptrend')
-        BEARISH  · 1M < -band            ('downtrend' or 'bounce in downtrend')
-        NEUTRAL  · |1M| ≤ band, or any input is NaN
-    """
+    """1M sets the trend; 1D/1W qualify it. NaN inputs → NEUTRAL."""
     if not all(np.isfinite(v) for v in (r1d, r1w, r1m)):
         return 'NEUTRAL', 'insufficient data'
     if r1m < -flat_band:

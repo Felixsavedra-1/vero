@@ -1,8 +1,4 @@
-"""
-display.py — Terminal output formatting.
-
-Pure functions — no I/O, no side effects.
-"""
+"""display.py — Terminal output formatting. Pure functions, no side effects."""
 
 from __future__ import annotations
 
@@ -138,7 +134,7 @@ def render_gains(
         )
         lines.append(_div(_W_GAINS))
         for txn in sells:
-            assert txn.realized_pnl is not None  # sells is filtered to realized_pnl is not None
+            assert txn.realized_pnl is not None
             total_realized += txn.realized_pnl
             lines.append(
                 f'  {txn.timestamp[:10]:<12} {txn.ticker:<10} {txn.shares:>9.4f}  '

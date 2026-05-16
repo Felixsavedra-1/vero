@@ -1,9 +1,4 @@
-"""
-ledger.py — Portfolio data model and JSON I/O.
-
-Single source of truth for holdings and transaction history.
-All reads and writes go through this module; nothing else touches the JSON files.
-"""
+"""ledger.py — Portfolio data model and JSON I/O. All file access goes through this module."""
 
 from __future__ import annotations
 
@@ -37,7 +32,7 @@ class Holding:
 class Transaction:
     id:           str
     timestamp:    str           # ISO 8601 full datetime, e.g. "2026-04-13T14:30:22.841504"
-    action:       str           # "buy" | "sell"
+    action:       str
     ticker:       str
     shares:       float
     dollars:      float

@@ -1,8 +1,4 @@
-"""
-dashboard.py — Build and open the animated web dashboard.
-
-Usage: python dashboard.py
-"""
+"""dashboard.py — Build and open the animated web dashboard."""
 
 from __future__ import annotations
 
@@ -39,7 +35,8 @@ def _build_holdings_data(
     prices: dict,
     prev_prices: dict,
     holding_history: dict | None = None,
-) -> tuple:
+) -> tuple[list[dict], float, float]:
+    """Compute per-holding rows with gain, day-change, and 1M sparkline data."""
     rows = []
     portfolio_value = 0.0
     total_cost = 0.0
@@ -61,8 +58,8 @@ def _build_holdings_data(
         gain_dollar    = value - h.cost
         gain_pct       = (gain_dollar / h.cost * 100) if h.cost > 0 else 0.0
         prev           = prev_prices.get(ticker, price)
-        day_chg_dollar = (price - prev) * h.shares
-        day_chg_pct    = (price - prev) / prev * 100 if prev else 0.0
+        day_change_dollar = (price - prev) * h.shares
+        day_change_pct    = (price - prev) / prev * 100 if prev else 0.0
         portfolio_value += value
         rows.append({
             "ticker":            ticker,
@@ -73,14 +70,15 @@ def _build_holdings_data(
             "value":             round(value, 2),
             "gain_pct":          round(gain_pct, 2),
             "gain_dollar":       round(gain_dollar, 2),
-            "day_change_dollar": round(day_chg_dollar, 2),
-            "day_change_pct":    round(day_chg_pct, 2),
+            "day_change_dollar": round(day_change_dollar, 2),
+            "day_change_pct":    round(day_change_pct, 2),
             "history_1m":        history.get(ticker, {}).get('1M', []),
         })
     return rows, portfolio_value, total_cost
 
 
-def _build_savings_data(savings_acc: list, today_d: date) -> tuple:
+def _build_savings_data(savings_acc: list, today_d: date) -> tuple[list[dict], float, float]:
+    """Compute per-account rows with accrual and next-payment projections."""
     rows = []
     savings_total = 0.0
     total_accrued = 0.0
@@ -111,7 +109,8 @@ def _build_savings_data(savings_acc: list, today_d: date) -> tuple:
     return rows, savings_total, total_accrued
 
 
-def _build_watchlist_data() -> list:
+def _build_watchlist_data() -> list[dict]:
+    """Fetch prices, signals, and descriptions for all watchlist tickers."""
     if not WATCHLIST:
         return []
     wl_tickers = list(WATCHLIST.keys())
@@ -137,6 +136,7 @@ def _build_watchlist_data() -> list:
 
 
 def build_payload(prices: dict | None = None, prev_prices: dict | None = None) -> dict:
+    """Assemble the full dashboard data payload from holdings, savings, and watchlist."""
     holdings    = load_holdings(HOLDINGS_FILE)
     savings_acc = load_savings(SAVINGS_FILE)
     goals       = load_goals(GOALS_FILE)

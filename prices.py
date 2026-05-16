@@ -14,6 +14,7 @@ import re
 import sys
 import warnings
 from collections.abc import Iterator
+from typing import Any
 from contextlib import contextmanager
 from datetime import date, timedelta, datetime, timezone
 from pathlib import Path
@@ -28,7 +29,7 @@ _DESC_CACHE_FILE = DATA_DIR / 'watchlist_descriptions_cache.json'
 _DESC_CACHE_TTL_DAYS = 30
 
 
-def _load_desc_cache() -> dict:
+def _load_desc_cache() -> dict[str, Any]:
     if _DESC_CACHE_FILE.exists():
         try:
             return json.loads(_DESC_CACHE_FILE.read_text())
