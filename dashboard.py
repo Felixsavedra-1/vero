@@ -132,7 +132,7 @@ def _build_watchlist_data() -> list[dict]:
         rows.append({
             "ticker":      ticker,
             "label":       label,
-            "price":       round(wl_prices.get(ticker, 0.0), 2),
+            "price":       round(p, 2) if (p := wl_prices.get(ticker)) is not None else None,
             "signal":      signal["type"],
             "reason":      signal["reason"],
             "history":     history,

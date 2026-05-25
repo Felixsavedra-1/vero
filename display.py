@@ -195,15 +195,15 @@ def render_gains(
                 f'{_pnl_cell(total_unrealized, unrealized_pct):>22}'
             )
 
-    combined = total_realized + total_unrealized
+    has_prices = total_value > 0
 
     lines += [
         '',
         'SUMMARY',
         _divider(_WIDTH_GAINS),
         f'  Realized:    {_signed_dollar(total_realized)}',
-        f'  Unrealized:  {_signed_dollar(total_unrealized)}',
-        f'  Combined:    {_signed_dollar(combined)}',
+        f'  Unrealized:  {_signed_dollar(total_unrealized) if has_prices else "n/a"}',
+        f'  Combined:    {_signed_dollar(total_realized + total_unrealized) if has_prices else _signed_dollar(total_realized) + " (+ unrealized n/a)"}',
         '',
     ]
     return '\n'.join(lines)
@@ -217,7 +217,7 @@ def render_history(
     rows = list(reversed(transactions))
 
     if ticker:
-        rows = [t for t in rows if t.ticker == ticker.upper()]
+        rows = [t for t in rows if t.ticker == ticker]
 
     if not rows:
         label = f' for {ticker.upper()}' if ticker else ''

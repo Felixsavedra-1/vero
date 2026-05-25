@@ -2,15 +2,17 @@
 
 > Wake up. Open terminal. Type `brief`.
 
-Terminal portfolio tracker with a live 3D dashboard — positions, P&L, Sharpe, drawdown, alpha. Stored locally; no accounts, no login.
-
 ![Dashboard preview](docs/dashboard-preview.gif)
+
+Local-first portfolio tracker with a live 3D web dashboard. Tracks positions, P&L, alpha vs SPY, Sharpe (Lo 2002 confidence intervals), volatility, and max drawdown — entirely from the terminal. No accounts. No cloud.
+
+**Stack:** Python · yfinance · pandas · Three.js · Claude AI
 
 ---
 
 ## Install
 
-Requires Python 3.9+
+Python 3.9+
 
 ```bash
 git clone https://github.com/Felixsavedra-1/portfolio-cli.git
@@ -22,11 +24,11 @@ sudo bash setup.sh
 
 ---
 
-## Quick start
+## Quick Start
 
 ```bash
-portfolio buy AAPL 1000    # log a trade at live price
-portfolio show             # view positions
+portfolio buy AAPL 1000    # buy at live price
+portfolio show             # positions + P&L
 brief                      # morning brief + dashboard
 ```
 
@@ -67,9 +69,9 @@ portfolio goal show
 
 ---
 
-## Morning brief
+## Morning Brief
 
-Portfolio value, per-holding returns (1D / 1W / 1M / YTD), alpha vs SPY, and trailing 1Y risk — one command:
+Portfolio value, per-holding returns (1D / 1W / 1M / YTD), global index moves, watchlist momentum signals, and trailing 1Y risk — one command.
 
 ```
 ════════════════════════════════════════════════════════
@@ -94,30 +96,28 @@ Portfolio value, per-holding returns (1D / 1W / 1M / YTD), alpha vs SPY, and tra
 
 ## Dashboard
 
+3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker for a live analysis panel — returns, volatility, drawdown, switchable price chart.
+
 ```bash
 brief                  # brief + open dashboard
 python dashboard.py    # dashboard only
 ```
 
-3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker to open a live analysis panel — returns, volatility, drawdown, switchable price chart.
-
-`brief` and `portfolio` are installed by `setup.sh`. The `python *.py` forms run scripts directly without installation.
-
 ---
 
-## Deep analysis
+## Deep Analysis
+
+CAGR, Sharpe with Lo (2002) 95% confidence intervals, volatility, and max drawdown — for the portfolio, benchmark, and each individual position. Saves a 6-panel chart to `~/.portfolio/portfolio_analysis.png`.
 
 ```bash
 python portfolio_analyzer.py
 ```
 
-CAGR, Sharpe with Lo (2002) confidence intervals, volatility, max drawdown — for the portfolio, benchmark, and each position. Saves a 6-panel chart to `~/.portfolio/portfolio_analysis.png`.
-
 ---
 
 ## Configuration
 
-Overrides go in `config_local.py` (gitignored):
+Create `config_local.py` in the project root (gitignored):
 
 ```python
 WATCHLIST = {
@@ -142,8 +142,14 @@ MUTUAL_FUNDS      = frozenset({'SWPPX'})
 
 ## Tests
 
+185 tests, all network-free.
+
 ```bash
 pytest tests/
 ```
 
-All tests are network-free.
+---
+
+<p align="center">
+  <img src="company.JPG" width="100" alt="Vero">
+</p>

@@ -62,5 +62,3 @@ try:
     from config_local import *  # noqa: F401, F403
 except ModuleNotFoundError:
     pass
-except Exception:
-    raise

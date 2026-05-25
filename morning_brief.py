@@ -103,7 +103,10 @@ class MorningBrief:
         if raw.empty:
             raise ValueError("No data returned. Check your network connection or ticker symbols.")
 
-        self._prices = raw['Close'] if isinstance(raw.columns, pd.MultiIndex) else raw[['Close']]
+        if isinstance(raw.columns, pd.MultiIndex):
+            self._prices = raw['Close']
+        else:
+            self._prices = raw[['Close']].rename(columns={'Close': tickers[0]})
 
     def _period_return(self, ticker: str, n_trading_days: int) -> float:
         """Uses the last n+1 data points so calendar gaps don't inflate the window."""
