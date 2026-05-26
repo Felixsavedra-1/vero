@@ -7,15 +7,15 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from config import TRADING_DAYS_PER_YEAR
+from ledger import Holding
+
 
 class RiskSnapshot(TypedDict):
     sharpe:       float
     sharpe_ci:    tuple[float, float]
     volatility:   float
     max_drawdown: float
-
-from config import TRADING_DAYS_PER_YEAR
-from ledger import Holding
 
 
 def annualized_sharpe(returns: pd.Series, risk_free_rate: float) -> float:

@@ -21,10 +21,10 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-LOOKBACK_DAYS = 7  # look back up to 7 calendar days to find the prior trading close
-
 from config import DATA_DIR
-_DESC_CACHE_FILE = DATA_DIR / 'watchlist_descriptions_cache.json'
+
+LOOKBACK_DAYS = 7  # look back up to 7 calendar days to find the prior trading close
+_DESC_CACHE_FILE    = DATA_DIR / 'watchlist_descriptions_cache.json'
 _DESC_CACHE_TTL_DAYS = 30
 
 
@@ -188,7 +188,7 @@ def fetch_label(ticker: str) -> str:
         return ticker
 
 
-def fetch_prices_with_change(tickers: list[str]) -> dict[str, dict[str, float]]:
+def fetch_prices_with_change(tickers: list[str]) -> dict[str, dict[str, float | None]]:
     """
     Returns {ticker: {"price": float, "prev_close": float}} in one network call.
     prev_close is the previous trading day's close, used for day-change calculations.
@@ -212,7 +212,7 @@ def fetch_prices_with_change(tickers: list[str]) -> dict[str, dict[str, float]]:
             continue
         result[t] = {
             'price':      round(float(s.iloc[-1]), 4),
-            'prev_close': round(float(s.iloc[-2]), 4) if len(s) >= 2 else float('nan'),
+            'prev_close': round(float(s.iloc[-2]), 4) if len(s) >= 2 else None,
         }
     return result
 

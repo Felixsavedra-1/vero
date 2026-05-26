@@ -131,10 +131,7 @@ def load_transactions(path: Path) -> list[Transaction]:
 
 
 def append_transaction(txn: Transaction, path: Path) -> None:
-    existing = []
-    if path.exists():
-        with open(path) as f:
-            existing = json.load(f)
+    existing = _load_json(path) if path.exists() else []
     existing.append({
         'id':           txn.id,
         'timestamp':    txn.timestamp,

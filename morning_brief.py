@@ -171,19 +171,25 @@ class MorningBrief:
 
     def latest_prices(self) -> dict[str, float]:
         """Most-recent close per holding ticker. Tickers with no data are omitted."""
-        return {
-            t: float(self._prices[t].dropna().iloc[-1])
-            for t in self.holdings
-            if t in self._prices.columns and not self._prices[t].dropna().empty
-        }
+        result = {}
+        for t in self.holdings:
+            if t not in self._prices.columns:
+                continue
+            s = self._prices[t].dropna()
+            if not s.empty:
+                result[t] = float(s.iloc[-1])
+        return result
 
     def previous_prices(self) -> dict[str, float]:
         """Penultimate close per holding ticker (for day-change). Tickers with <2 obs omitted."""
-        return {
-            t: float(self._prices[t].dropna().iloc[-2])
-            for t in self.holdings
-            if t in self._prices.columns and len(self._prices[t].dropna()) >= 2
-        }
+        result = {}
+        for t in self.holdings:
+            if t not in self._prices.columns:
+                continue
+            s = self._prices[t].dropna()
+            if len(s) >= 2:
+                result[t] = float(s.iloc[-2])
+        return result
 
     def _current_portfolio_value(self) -> float:
         """Falls back to cost basis for any ticker missing from price data."""
