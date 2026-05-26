@@ -203,7 +203,7 @@ def fetch_prices_with_change(tickers: list[str]) -> dict[str, dict[str, float | 
         return {}
 
     close = _close_frame(data, tickers).ffill()
-    result: dict[str, dict[str, float]] = {}
+    result: dict[str, dict[str, float | None]] = {}
     for t in tickers:
         if t not in close.columns:
             continue

@@ -154,7 +154,7 @@ def build_payload(
     tickers = list(holdings.keys())
     if prices is None:
         raw         = fetch_prices_with_change(tickers) if tickers else {}
-        prices      = {t: v['price']      for t, v in raw.items()}
+        prices      = {t: v['price']      for t, v in raw.items() if v['price'] is not None}
         prev_prices = {t: v['prev_close'] for t, v in raw.items() if v['prev_close'] is not None}
     prev_prices = prev_prices or {}
 
