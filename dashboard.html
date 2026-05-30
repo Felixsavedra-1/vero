@@ -11,20 +11,33 @@
   --bg:     #0a0a0a;
   --border: #282828;
   --text:   #d8d0c8;
-  --dim:    #787878;
+  --dim:    #928c84;
   --cream:  #e6e1dc;
   --tan:    #d8d0c8;
   --gold:   #8b4a3a;
   --orange: #a03828;
-  --neg:    #6e2020;
-  --font:   'Courier New', Courier, monospace;
+  --neg:    #b65548;
+  --font-mono: 'Courier New', Courier, monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
+  --font:   var(--font-mono);              /* legacy alias */
 }
 
 html, body {
   width: 100%; min-height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Numeric / tabular data keeps the monospace identity */
+.mono, .panel-value, .wl-price, .dr-left, .dr-right, .dr-sub,
+.hm-val, .hm-pos, .hm-neg, .an-ticker, .an-m-val,
+.progress-meta .pct, .progress-foot, #header-gain, #header-time,
+#header-staleness, #header-title, #header-brand {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Neo-grid overlay ───────────────────────────────────────────────────── */
@@ -32,8 +45,8 @@ body::before {
   content: ''; position: fixed; inset: 0;
   pointer-events: none; z-index: 1;
   background:
-    linear-gradient(rgba(200,190,180,0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200,190,180,0.012) 1px, transparent 1px);
+    linear-gradient(rgba(200,190,180,0.006) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,190,180,0.006) 1px, transparent 1px);
   background-size: 48px 48px;
 }
 
@@ -42,8 +55,8 @@ body::after {
   content: ''; position: fixed; inset: 0;
   pointer-events: none; z-index: 9999;
   background: repeating-linear-gradient(
-    0deg, transparent 0, transparent 3px,
-    rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+    0deg, transparent 0, transparent 4px,
+    rgba(0,0,0,0.035) 4px, rgba(0,0,0,0.035) 5px
   );
 }
 
@@ -59,21 +72,21 @@ body::after {
 }
 
 @keyframes akira-glitch {
-  0%, 88%, 100% { transform: translateX(0); text-shadow: none; clip-path: none; }
-  89%  { transform: translateX(-3px);
+  0%, 92%, 100% { transform: translateX(0); text-shadow: none; clip-path: none; }
+  93%  { transform: translateX(-1.5px);
          clip-path: polygon(0 15%, 100% 15%, 100% 38%, 0 38%);
-         text-shadow: 3px 0 var(--gold); }
-  90%  { transform: translateX(3px);
+         text-shadow: 1.5px 0 var(--gold); }
+  94%  { transform: translateX(1.5px);
          clip-path: polygon(0 55%, 100% 55%, 100% 78%, 0 78%);
-         text-shadow: -3px 0 var(--orange); }
-  91%  { transform: translateX(0); clip-path: none; text-shadow: none; }
+         text-shadow: -1.5px 0 var(--orange); }
+  95%  { transform: translateX(0); clip-path: none; text-shadow: none; }
 }
 
 #header-title {
   font-size: 16px; font-weight: bold;
   letter-spacing: 0.20em; color: var(--tan);
   pointer-events: none;
-  animation: akira-glitch 5s ease-in-out infinite;
+  animation: akira-glitch 14s ease-in-out infinite;
 }
 
 #header-gain {
@@ -133,11 +146,18 @@ body::after {
 .panel--full { grid-column: 1 / -1; }
 
 .panel-header {
-  display: flex; justify-content: flex-start; align-items: baseline; gap: 16px;
+  display: flex; justify-content: flex-start; align-items: center; gap: 14px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--border);
 }
 .panel-label {
+  display: flex; align-items: center; gap: 10px;
   font-size: 12px; letter-spacing: 0.24em;
-  color: var(--dim); text-transform: uppercase;
+  color: var(--text); text-transform: uppercase;
+}
+.panel-label::before {
+  content: ''; width: 3px; height: 13px;
+  background: var(--orange); border-radius: 1px;
+  box-shadow: 0 0 8px rgba(160,56,40,0.6);
 }
 .panel-value {
   font-size: 32px; color: var(--tan);
@@ -285,25 +305,31 @@ body::after {
   transition: color 0.15s, border-color 0.15s;
 }
 .wl-tf:hover  { color: var(--tan);    border-color: var(--tan); }
-.wl-tf.active { color: #4C0701; border-color: #4C0701; }
+.wl-tf.active {
+  color: var(--cream); border-color: var(--orange);
+  background: rgba(160,56,40,0.16);
+}
+.wl-tf:focus-visible, .legend-btn:focus-visible {
+  outline: 1px solid var(--orange); outline-offset: 2px;
+}
 
 .wl-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1.4fr) 110px 190px 1fr 220px;
-  align-items: center; gap: 20px; padding: 13px 0;
+  grid-template-columns: minmax(140px, 1.6fr) 120px minmax(150px, 1fr) 220px;
+  align-items: center; gap: 24px; padding: 14px 0;
   border-bottom: 1px solid var(--border);
 }
 .wl-row:last-child { border-bottom: none; }
 
-.wl-name  { font-size: 14px; color: var(--tan); letter-spacing: 0.06em; }
-.wl-tick  { font-size: 12px; color: var(--dim); letter-spacing: 0.10em; margin-top: 3px; }
-.wl-price { font-size: 16px; color: var(--tan); letter-spacing: 0.04em; font-weight: bold; }
+.wl-name  { font-size: 14px; color: var(--tan); letter-spacing: 0.01em; }
+.wl-tick  { font-family: var(--font-mono); font-size: 11px; color: var(--dim); letter-spacing: 0.12em; margin-top: 4px; }
+.wl-price { font-size: 16px; color: var(--tan); letter-spacing: 0.02em; font-weight: bold; }
 
-.wl-signal         { font-size: 13px; letter-spacing: 0.10em; }
-.wl-signal.BULLISH { color: #00d56f; }
-.wl-signal.BEARISH { color: #d71200; }
-.wl-signal.NEUTRAL { color: #4C0701; }
-.wl-reason  { font-size: 12px; color: var(--dim); letter-spacing: 0.06em; margin-top: 3px; }
+.wl-signal         { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; font-weight: 600; }
+.wl-signal.BULLISH { color: #5fbf8f; }
+.wl-signal.BEARISH { color: #c2503f; }
+.wl-signal.NEUTRAL { color: #98908a; }
+.wl-reason  { font-size: 12px; color: var(--dim); letter-spacing: 0.01em; margin-top: 4px; line-height: 1.5; }
 .wl-sparkline  { display: block; width: 220px; height: 48px; }
 .hm-sparkline  { display: block; margin-left: auto; opacity: 0.82; }
 
@@ -340,7 +366,7 @@ body::after {
   text-transform: uppercase;
   margin-bottom: 6px;
 }
-#wl-tooltip .tt-desc { color: var(--dim); }
+#wl-tooltip .tt-desc { color: var(--dim); letter-spacing: 0.01em; line-height: 1.6; }
 .wl-name { cursor: pointer; }
 .wl-name.active-analysis { color: #4C0701; }
 
@@ -348,7 +374,7 @@ body::after {
 .an-empty  { font-size: 13px; color: var(--dim); letter-spacing: 0.10em; padding: 28px 0; text-align: center; }
 .an-header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
 .an-ticker { font-size: 22px; color: var(--tan); letter-spacing: 0.12em; font-weight: bold; }
-.an-label  { font-size: 14px; color: var(--text); letter-spacing: 0.06em; }
+.an-label  { font-size: 14px; color: var(--text); letter-spacing: 0.01em; }
 .an-sector { font-size: 11px; color: var(--gold); letter-spacing: 0.16em; text-transform: uppercase; margin-left: auto; }
 .an-tf-bar { display: flex; gap: 5px; }
 #an-chart-wrap { position: relative; width: 100%; height: 140px; margin-bottom: 28px; }
@@ -361,7 +387,7 @@ body::after {
 .an-m-pos   { color: var(--tan); }
 .an-m-neg   { color: var(--neg); }
 .an-m-neu   { color: var(--dim); }
-.an-desc    { font-size: 13px; color: var(--dim); letter-spacing: 0.04em; line-height: 1.65; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 22px; }
+.an-desc    { font-size: 13px; color: var(--dim); letter-spacing: 0.01em; line-height: 1.7; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 22px; max-width: 78ch; }
 
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 3px; }
@@ -733,10 +759,11 @@ function build3DRing(containerId, labels, values, totalValue, colors) {
   let particleAlpha = 0;
 
   const tip = document.createElement('div');
-  tip.style.cssText = "position:absolute;pointer-events:none;background:#050c10;" +
-    "border:1px solid #004455;color:#d8d0c8;font-family:'Courier New',monospace;" +
+  tip.style.cssText = "position:absolute;pointer-events:none;background:#120d10;" +
+    "border:1px solid #282828;color:#d8d0c8;font-family:'Courier New',monospace;" +
+    "font-variant-numeric:tabular-nums;" +
     "font-size:12px;letter-spacing:0.08em;padding:7px 12px;border-radius:2px;" +
-    "opacity:0;transition:opacity 0.15s;box-shadow:0 0 10px rgba(76,7,1,0.2);" +
+    "opacity:0;transition:opacity 0.15s;box-shadow:0 0 14px rgba(160,56,40,0.18);" +
     "z-index:10;white-space:nowrap;";
   container.appendChild(tip);
 
@@ -744,8 +771,8 @@ function build3DRing(containerId, labels, values, totalValue, colors) {
   const centerEl = document.createElement('div');
   centerEl.className = 'chart-center';
   centerEl.innerHTML =
-    `<div id="${containerId}-cv" style="font-size:17px;letter-spacing:0.04em;color:var(--tan);font-weight:bold">${fmt$(totalValue)}</div>` +
-    `<div id="${containerId}-cs" style="font-size:10px;letter-spacing:0.12em;color:var(--dim);margin-top:3px"></div>`;
+    `<div id="${containerId}-cv" style="font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:0.04em;color:var(--tan);font-weight:bold">${fmt$(totalValue)}</div>` +
+    `<div id="${containerId}-cs" style="font-size:10px;letter-spacing:0.14em;color:var(--dim);margin-top:4px;text-transform:uppercase"></div>`;
   container.appendChild(centerEl);
   const centerVal = document.getElementById(containerId + '-cv');
   const centerSub = document.getElementById(containerId + '-cs');
@@ -977,7 +1004,7 @@ function renderSavings() {
 // ── Digit flicker ────────────────────────────────────────────────────────────
 function scheduleFlicker(el) {
   if (REDUCED) return;
-  const delay = 4000 + Math.random() * 5000;
+  const delay = 8000 + Math.random() * 8000;
   setTimeout(() => {
     el.style.opacity = '0.3';
     setTimeout(() => { el.style.opacity = ''; scheduleFlicker(el); }, 55);
@@ -1127,7 +1154,6 @@ function renderWatchlist() {
         <div class="wl-signal ${escapeHTML(w.signal)}">${SIGNAL_ICON[w.signal] || '~'} ${escapeHTML(w.signal)}</div>
         <div class="wl-reason">${escapeHTML(w.reason || '')}</div>
       </div>
-      <div></div>
       <canvas class="wl-sparkline" id="wl-canvas-${i}"></canvas>
     </div>
   `).join('');
@@ -1184,8 +1210,9 @@ function _attachChartTooltip(wrap, prices, W) {
   if (!tip) {
     tip = document.createElement('div');
     tip.className = 'an-tip';
-    tip.style.cssText = 'position:absolute;pointer-events:none;background:#050c10;' +
-      'border:1px solid #d8d0c8;color:#d8d0c8;font-family:"Courier New",monospace;' +
+    tip.style.cssText = 'position:absolute;pointer-events:none;background:#120d10;' +
+      'border:1px solid #3a3330;color:#d8d0c8;font-family:"Courier New",monospace;' +
+      'font-variant-numeric:tabular-nums;' +
       'font-size:11px;letter-spacing:0.08em;padding:5px 10px;border-radius:2px;' +
       'opacity:0;transition:opacity 0.1s;white-space:nowrap;z-index:20;' +
       'box-shadow:0 0 10px rgba(216,208,200,0.15);text-shadow:0 0 8px rgba(216,208,200,0.3);';
