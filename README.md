@@ -1,28 +1,26 @@
 # Vero
 
-> Wake up. Open terminal. Type `brief`.
-
 ![Dashboard preview](docs/dashboard-preview.gif)
 
-Local-first portfolio tracker with a live 3D web dashboard. Tracks positions, P&L, alpha vs SPY, Sharpe (Lo 2002 confidence intervals), volatility, and max drawdown — entirely from the terminal. No accounts. No cloud.
+> Wake up. Open terminal. Type `brief`.
+
+<p align="center">
+  <a href="https://github.com/Felixsavedra-1/investment-portfolio-analyzer/actions/workflows/ci.yml"><img src="https://github.com/Felixsavedra-1/investment-portfolio-analyzer/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
+  <img src="https://img.shields.io/badge/python-3.11-blue.svg" alt="Python 3.11">
+</p>
+
+A local-first portfolio tracker that lives in your terminal and renders a live 3D web dashboard — no accounts, no cloud, no telemetry. It tracks positions, P&L, alpha vs SPY, and a full risk snapshot (Sharpe with Lo 2002 confidence intervals, volatility, max drawdown) entirely from data you keep on your own machine.
+
+## Highlights
+
+- **Academic-grade risk stats** — Sharpe ratios reported with Lo (2002) asymptotic 95% confidence intervals, plus volatility and max drawdown for the portfolio, the benchmark, and every position.
+- **Trustworthy by construction** — 185 tests, all network-free, with `mypy` type-checking gated in CI on every push.
+- **Server-less 3D dashboard** — Three.js allocation rings and animated sparklines, data injected at build time, opens as a single static HTML file with no backend.
+- **Clean, layered architecture** — a single network module (yfinance), pure compute and render layers, and atomic JSON writes throughout.
+- **Local-first** — all data stays in `~/.portfolio/`. No sign-up, no servers, no data leaves your machine.
 
 **Stack:** Python · yfinance · pandas · Three.js · Claude AI
-
----
-
-## Install
-
-Python 3.9+
-
-```bash
-git clone https://github.com/Felixsavedra-1/portfolio-cli.git
-cd portfolio-cli
-sudo bash setup.sh
-```
-
-`sudo` required — installer writes to `/usr/local/bin/`.
-
----
 
 ## Quick Start
 
@@ -32,11 +30,27 @@ portfolio show             # positions + P&L
 brief                      # morning brief + dashboard
 ```
 
-Data lives in `~/.portfolio/`. Created automatically on first use.
+Data lives in `~/.portfolio/`, created automatically on first use.
 
 ---
 
-## Commands
+<details>
+<summary><b>Install</b></summary>
+
+Python 3.11
+
+```bash
+git clone https://github.com/Felixsavedra-1/investment-portfolio-analyzer.git
+cd investment-portfolio-analyzer
+sudo bash setup.sh
+```
+
+`sudo` required — the installer writes to `/usr/local/bin/`.
+
+</details>
+
+<details>
+<summary><b>Commands</b></summary>
 
 ### Trades
 
@@ -67,9 +81,10 @@ portfolio goal remove portfolio|savings
 portfolio goal show
 ```
 
----
+</details>
 
-## Morning Brief
+<details>
+<summary><b>Morning Brief</b></summary>
 
 Portfolio value, per-holding returns (1D / 1W / 1M / YTD), global index moves, watchlist momentum signals, and trailing 1Y risk — one command.
 
@@ -92,9 +107,10 @@ Portfolio value, per-holding returns (1D / 1W / 1M / YTD), global index moves, w
   Sharpe 1.42 [0.98, 1.86]  ·  Vol 14.2%  ·  MDD -8.3%
 ```
 
----
+</details>
 
-## Dashboard
+<details>
+<summary><b>Dashboard</b></summary>
 
 3D allocation rings, animated sparklines, savings progress, goal tracking. Click any watchlist ticker for a live analysis panel — returns, volatility, drawdown, switchable price chart.
 
@@ -103,9 +119,10 @@ brief                  # brief + open dashboard
 python dashboard.py    # dashboard only
 ```
 
----
+</details>
 
-## Deep Analysis
+<details>
+<summary><b>Deep Analysis</b></summary>
 
 CAGR, Sharpe with Lo (2002) 95% confidence intervals, volatility, and max drawdown — for the portfolio, benchmark, and each individual position. Saves a 6-panel chart to `~/.portfolio/portfolio_analysis.png`.
 
@@ -113,9 +130,10 @@ CAGR, Sharpe with Lo (2002) 95% confidence intervals, volatility, and max drawdo
 python portfolio_analyzer.py
 ```
 
----
+</details>
 
-## Configuration
+<details>
+<summary><b>Configuration</b></summary>
 
 Create `config_local.py` in the project root (gitignored):
 
@@ -138,15 +156,18 @@ MUTUAL_FUNDS      = frozenset({'SWPPX'})
 | `INTEREST_PAYMENT_DAY` | `None` | Day of month savings interest is credited |
 | `BRIEF_TIMEZONE` | `America/New_York` | Timezone for the brief header |
 
----
+</details>
 
-## Tests
+<details>
+<summary><b>Tests</b></summary>
 
 185 tests, all network-free.
 
 ```bash
 pytest tests/
 ```
+
+</details>
 
 ---
 
