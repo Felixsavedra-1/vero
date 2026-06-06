@@ -66,8 +66,6 @@ class AnalysisResult:
     rolling:           RollingMetrics | None = field(default=None)
 
 
-# ── Pure compute ──────────────────────────────────────────────────────────────
-
 def compute_asset_metrics(returns: pd.Series, risk_free_rate: float) -> AssetMetrics:
     """Compute risk/return for a single return series. Pure."""
     returns = returns.dropna()
@@ -167,8 +165,6 @@ def compute_analysis(
     )
 
 
-# ── Pure render: console ──────────────────────────────────────────────────────
-
 def print_results(result: AnalysisResult) -> None:
     """Tearsheet to stdout. Pure: depends only on `result`."""
     def fmt(val: float, fmt_str: str) -> str:
@@ -217,8 +213,6 @@ def print_results(result: AnalysisResult) -> None:
         print(f"{ticker:<10} {weight:>9.1%} {m.annual_return:>14.2%} "
               f"{m.annual_volatility:>11.2%} {m.sharpe_ratio:>10.3f}")
 
-
-# ── Pure render: matplotlib ───────────────────────────────────────────────────
 
 def _plot_cumulative(ax: Axes, result: AnalysisResult) -> None:
     p = result.portfolio.cumulative_returns
@@ -352,8 +346,6 @@ def plot_dashboard(result: AnalysisResult, output_path: Path) -> Path:
     return output_path
 
 
-# ── Coordinator ───────────────────────────────────────────────────────────────
-
 class PortfolioAnalyzer:
 
     def __init__(self,
@@ -427,8 +419,6 @@ class PortfolioAnalyzer:
         except ValueError as exc:
             raise ValueError(f"Invalid date '{value}'. Use YYYY-MM-DD format.") from exc
 
-    # — Fetch (the only impure operation in this class) —
-
     def fetch_returns(self) -> pd.DataFrame:
         """Download and align daily returns. Forward-fills single-day gaps then
         drops rows that any asset lacks, so all columns share a common index."""
@@ -473,8 +463,6 @@ class PortfolioAnalyzer:
                 "Increase date range or use assets with longer history."
             )
         return returns
-
-    # — Public entry point —
 
     def run_analysis(self) -> AnalysisResult:
         returns = self.fetch_returns()

@@ -172,5 +172,5 @@ pytest tests/
 ---
 
 <p align="center">
-  <img src="company.JPG" width="50%" alt="Vero">
+  <img src="VRcompany.png" width="50%" alt="Vero">
 </p>

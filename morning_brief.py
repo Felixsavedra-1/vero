@@ -169,27 +169,24 @@ class MorningBrief:
         s = self._prices[ticker].dropna()
         return float(s.iloc[-1]) if not s.empty else float('nan')
 
-    def latest_prices(self) -> dict[str, float]:
-        """Most-recent close per holding ticker. Tickers with no data are omitted."""
+    def _closes_at(self, offset: int) -> dict[str, float]:
+        """Close at `offset` (-1 latest, -2 prior) per holding ticker, where available."""
         result = {}
         for t in self.holdings:
             if t not in self._prices.columns:
                 continue
             s = self._prices[t].dropna()
-            if not s.empty:
-                result[t] = float(s.iloc[-1])
+            if len(s) >= -offset:
+                result[t] = float(s.iloc[offset])
         return result
+
+    def latest_prices(self) -> dict[str, float]:
+        """Most-recent close per holding ticker. Tickers with no data are omitted."""
+        return self._closes_at(-1)
 
     def previous_prices(self) -> dict[str, float]:
         """Penultimate close per holding ticker (for day-change). Tickers with <2 obs omitted."""
-        result = {}
-        for t in self.holdings:
-            if t not in self._prices.columns:
-                continue
-            s = self._prices[t].dropna()
-            if len(s) >= 2:
-                result[t] = float(s.iloc[-2])
-        return result
+        return self._closes_at(-2)
 
     def _current_portfolio_value(self) -> float:
         """Falls back to cost basis for any ticker missing from price data."""

@@ -9,11 +9,11 @@ from dashboard import build_html
 
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.png"
 
-# ── Demo price histories ──────────────────────────────────────────────────────
+random.seed(42)  # deterministic demo data for reproducible screenshots
+
 
 def _trend(start: float, end: float, n: int) -> list[float]:
     """Linear price series with slight noise for a realistic sparkline."""
-    random.seed(42)
     step = (end - start) / (n - 1)
     return [round(start + step * i + random.uniform(-step * 0.4, step * 0.4), 2) for i in range(n)]
 
@@ -35,14 +35,10 @@ _META_3M   = _trend(548.0, 592.4, 63)
 _META_1M   = _trend(565.0, 592.4, 21)
 _META_1W   = [572.00, 578.40, 584.20, 589.80, 592.40]
 
-# ── Holdings sparklines (1M window) ─────────────────────────────────────────
-
 _NVDA_1M  = _trend(88.0,  118.0, 21)
 _AAPL_1M  = _trend(192.0, 199.0, 21)
 _AXP_1M   = _trend(204.0, 242.0, 21)
 _SWPPX_1M = _trend(70.2,  73.4,  21)
-
-# ── Payload ───────────────────────────────────────────────────────────────────
 
 PAYLOAD = {
     "generated": "2026-04-20T08:02:00+00:00",

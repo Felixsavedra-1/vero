@@ -19,7 +19,7 @@ GOAL_KEY_SAVINGS   = '__savings__'
 class Holding:
     ticker:         str
     shares:         float
-    cost:           float   # cumulative cost basis in dollars
+    cost:           float
     first_purchase: str
     label:          str
 
