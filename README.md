@@ -1,4 +1,4 @@
-# Vero
+# Vero - Wealth Management CLI
 
 ![Dashboard preview](docs/dashboard-preview.gif)
 
