@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import webbrowser
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -17,6 +17,8 @@ from config import (
     BRIEF_WINDOW_1D,
     BRIEF_WINDOW_1W,
     BRIEF_WINDOW_1M,
+    BRIEF_WINDOW_2Y,
+    BRIEF_WINDOW_5Y,
     GLOBAL_INDICES,
     HOLDINGS_FILE,
     INTEREST_PAYMENT_DAY,
@@ -78,14 +80,16 @@ class MorningBrief:
     def fetch(self) -> None:
         """
         Starts from Dec 28 of the prior year to capture the YTD baseline close,
-        and from the earliest holding start_date to cover full portfolio history.
+        from the earliest holding start_date to cover full portfolio history, and
+        at least ~5 years back so the 2Y/5Y return windows are computable.
         """
-        ytd_anchor = f"{datetime.now().year - 1}-12-28"
-        earliest   = min(
+        ytd_anchor    = f"{datetime.now().year - 1}-12-28"
+        five_y_anchor = (date.today() - timedelta(days=5 * 366)).isoformat()
+        earliest      = min(
             (h.start_date for h in self.holdings.values()),
             default=ytd_anchor,
         )
-        start = min(earliest, ytd_anchor)
+        start = min(earliest, ytd_anchor, five_y_anchor)
 
         tickers = list(dict.fromkeys(
             list(self.holdings.keys())
@@ -210,8 +214,10 @@ class MorningBrief:
         return f'{sign}${abs(val):.2f}'
 
     _DIV_WIDTH = 76
+    _WIDE_DIV_WIDTH = 96
     _BAR_WIDTH = 68
     _DIV = '─' * _DIV_WIDTH
+    _WIDE_DIV = '─' * _WIDE_DIV_WIDTH
     _BAR = '═' * _BAR_WIDTH
 
     def render(self) -> None:
@@ -220,7 +226,7 @@ class MorningBrief:
         hour = now.hour % 12 or 12
         ampm = 'AM' if now.hour < 12 else 'PM'
         print(f"  Vero  ·  {now.strftime('%A, %B')} {now.day}, {now.year}  {hour}:{now.strftime('%M')} {ampm} ET")
-        print(f"  {_BRAND}@vedra&co{_RESET}")
+        print(f"  {_BRAND}Vedra Research{_RESET}")
         print(self._BAR)
         if self._savings:
             self._render_savings()
@@ -244,7 +250,6 @@ class MorningBrief:
             _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
             days_until   = (next_date - today).days
 
-        # Header
         print(f'\n{_BRAND}Savings{_RESET}\n')
         bank_pfx = f"  {'Bank':<10} " if show_bank else '  '
         acct_w   = 20 if show_bank else 22
@@ -268,7 +273,6 @@ class MorningBrief:
             else:
                 print(base_row)
 
-        # Totals
         print(f'  {self._DIV}')
         bank_col   = f'{"":10} ' if show_bank else ''
         bal_str    = f'${total_balance:,.2f}'
@@ -292,8 +296,8 @@ class MorningBrief:
         print(f'  Value     ${current_value:,.2f}')
         print(f'  Invested  ${total_invested:,.2f}  ·  since {start_label}')
         print()
-        print(f"  {'Ticker':<9} {'Price':>9}  {'Wt':>4}  {'$P&L':>9}  {'1D':>8}  {'1W':>8}  {'1M':>8}  {'YTD':>8}")
-        print(f'  {self._DIV}')
+        print(f"  {'Ticker':<9} {'Price':>9}  {'Wt':>4}  {'$P&L':>9}  {'1D':>8}  {'1W':>8}  {'1M':>8}  {'YTD':>8}  {'2Y':>8}  {'5Y':>8}")
+        print(f'  {self._WIDE_DIV}')
 
         total_dollar_pnl, components = self._render_holding_rows(current_value)
 
@@ -301,20 +305,21 @@ class MorningBrief:
             return sum(components[k]) if components[k] else float('nan')
 
         p1d, p1w, p1m, pytd = agg('1d'), agg('1w'), agg('1m'), agg('ytd')
+        p2y, p5y            = agg('2y'), agg('5y')
 
-        print(f'  {self._DIV}')
+        print(f'  {self._WIDE_DIV}')
         print(
             f"  {'Portfolio':<9} {'—':>9}  {'—':>4}  {self._dollar(total_dollar_pnl):>9}  "
-            f'{_pct(p1d):>8}  {_pct(p1w):>8}  {_pct(p1m):>8}  {_pct(pytd):>8}'
+            f'{_pct(p1d):>8}  {_pct(p1w):>8}  {_pct(p1m):>8}  {_pct(pytd):>8}  {_pct(p2y):>8}  {_pct(p5y):>8}'
         )
-        self._render_benchmark_alpha(p1d, p1w, p1m, pytd)
+        self._render_benchmark_alpha(p1d, p1w, p1m, pytd, p2y, p5y)
 
         if self.mutual_funds & set(self.holdings):
             print('\n  * Mutual fund NAV updated after 4 PM ET — reflects prior close.')
 
     def _render_holding_rows(self, current_value: float) -> tuple[float, dict[str, list[float]]]:
         """Per-holding rows. Returns (total_dollar_pnl, weighted return components)."""
-        components: dict[str, list] = {'1d': [], '1w': [], '1m': [], 'ytd': []}
+        components: dict[str, list] = {'1d': [], '1w': [], '1m': [], 'ytd': [], '2y': [], '5y': []}
         total_dollar_pnl = 0.0
 
         for ticker, h in self.holdings.items():
@@ -322,6 +327,8 @@ class MorningBrief:
             r1w  = self._period_return(ticker, BRIEF_WINDOW_1W)
             r1m  = self._period_return(ticker, BRIEF_WINDOW_1M)
             rytd = self._ytd_return(ticker)
+            r2y  = self._period_return(ticker, BRIEF_WINDOW_2Y)
+            r5y  = self._period_return(ticker, BRIEF_WINDOW_5Y)
 
             cur_price = self._current_price(ticker)
             pos_value = h.shares * cur_price
@@ -337,7 +344,7 @@ class MorningBrief:
             print(
                 f'  {ticker:<9} {price_str:>9}  {weight_str:>4}  '
                 f'{self._dollar(dollar):>9}  '
-                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}  {_pct(rytd):>8}'
+                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}  {_pct(rytd):>8}  {_pct(r2y):>8}  {_pct(r5y):>8}'
                 f'{flag}'
             )
 
@@ -349,48 +356,55 @@ class MorningBrief:
             pct_str  = _pct(gain_pct)
             print(f'            mkt {mkt_str}  ·  cost {cost_str}  ·  gain {gain_str} ({pct_str})')
 
-            for key, val in [('1d', r1d), ('1w', r1w), ('1m', r1m), ('ytd', rytd)]:
+            for key, val in [('1d', r1d), ('1w', r1w), ('1m', r1m), ('ytd', rytd), ('2y', r2y), ('5y', r5y)]:
                 if np.isfinite(val) and np.isfinite(weight):
                     components[key].append(val * weight)
 
         return total_dollar_pnl, components
 
-    def _render_benchmark_alpha(self, p1d: float, p1w: float, p1m: float, pytd: float) -> None:
+    def _render_benchmark_alpha(
+        self, p1d: float, p1w: float, p1m: float, pytd: float, p2y: float, p5y: float
+    ) -> None:
         if self.benchmark not in self._prices.columns:
             return
         b1d  = self._period_return(self.benchmark, BRIEF_WINDOW_1D)
         b1w  = self._period_return(self.benchmark, BRIEF_WINDOW_1W)
         b1m  = self._period_return(self.benchmark, BRIEF_WINDOW_1M)
         bytd = self._ytd_return(self.benchmark)
+        b2y  = self._period_return(self.benchmark, BRIEF_WINDOW_2Y)
+        b5y  = self._period_return(self.benchmark, BRIEF_WINDOW_5Y)
 
         def alpha(p: float, b: float) -> float:
             return p - b if np.isfinite(p) and np.isfinite(b) else float('nan')
 
         print(
             f"  {'S&P 500':<9} {'—':>9}  {'—':>4}  {'—':>9}  "
-            f'{_pct(b1d):>8}  {_pct(b1w):>8}  {_pct(b1m):>8}  {_pct(bytd):>8}'
+            f'{_pct(b1d):>8}  {_pct(b1w):>8}  {_pct(b1m):>8}  {_pct(bytd):>8}  {_pct(b2y):>8}  {_pct(b5y):>8}'
         )
         print(
             f"  {'Alpha':<9} {'—':>9}  {'—':>4}  {'—':>9}  "
             f'{_pct(alpha(p1d, b1d)):>8}  {_pct(alpha(p1w, b1w)):>8}  '
-            f'{_pct(alpha(p1m, b1m)):>8}  {_pct(alpha(pytd, bytd)):>8}'
+            f'{_pct(alpha(p1m, b1m)):>8}  {_pct(alpha(pytd, bytd)):>8}  '
+            f'{_pct(alpha(p2y, b2y)):>8}  {_pct(alpha(p5y, b5y)):>8}'
         )
 
     def _render_watchlist(self) -> None:
         print(f'\n{_BRAND}Watchlist{_RESET}\n')
-        print(f"  {'Company':<20} {'Ticker':<6} {'Price':>9}  {'1D':>8}  {'1W':>8}  {'1M':>8}   Signal")
-        print(f'  {self._DIV}')
+        print(f"  {'Company':<20} {'Ticker':<6} {'Price':>9}  {'1D':>8}  {'1W':>8}  {'1M':>8}  {'2Y':>8}  {'5Y':>8}   Signal")
+        print(f'  {self._WIDE_DIV}')
         for ticker, label in self.watchlist.items():
             r1d    = self._period_return(ticker, BRIEF_WINDOW_1D)
             r1w    = self._period_return(ticker, BRIEF_WINDOW_1W)
             r1m    = self._period_return(ticker, BRIEF_WINDOW_1M)
+            r2y    = self._period_return(ticker, BRIEF_WINDOW_2Y)
+            r5y    = self._period_return(ticker, BRIEF_WINDOW_5Y)
             signal, reason = self._watchlist_signal(ticker)
             arrow  = _SIGNAL_ARROW[signal]
             price     = self._current_price(ticker)
             price_str = f'${price:,.2f}' if np.isfinite(price) else 'n/a'
             print(
                 f'  {label:<20} {ticker:<6} {price_str:>9}  '
-                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}   '
+                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}  {_pct(r2y):>8}  {_pct(r5y):>8}   '
                 f'{arrow} {signal:<7}  {reason}'
             )
 

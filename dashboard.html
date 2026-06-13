@@ -83,7 +83,7 @@ body::after {
 }
 
 #header-title {
-  font-size: 16px; font-weight: bold;
+  font-size: 20px; font-weight: bold;
   letter-spacing: 0.20em; color: var(--tan);
   pointer-events: none;
   animation: akira-glitch 14s ease-in-out infinite;
@@ -117,8 +117,15 @@ body::after {
   font-size: 13px; color: var(--dim);
   letter-spacing: 0.06em; margin-left: 14px;
 }
+#header-brand-stack {
+  display: flex; flex-direction: column; gap: 2px; line-height: 1.05;
+}
 #header-brand {
-  font-size: 14px; letter-spacing: 0.14em; color: var(--tan);
+  font-size: 17.5px; letter-spacing: 0.14em; color: var(--tan);
+}
+#header-poweredby {
+  font-size: 7px; letter-spacing: 0.18em; color: var(--dim);
+  text-transform: uppercase;
 }
 #header-staleness {
   font-size: 13px; letter-spacing: 0.06em;
@@ -389,6 +396,21 @@ body::after {
 .an-m-neu   { color: var(--dim); }
 .an-desc    { font-size: 13px; color: var(--dim); letter-spacing: 0.01em; line-height: 1.7; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 22px; max-width: 78ch; }
 
+/* ── Claude deep analysis block ─────────────────────────────────────────── */
+.an-claude       { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 20px; }
+.an-claude-head  { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px; }
+.an-claude-title { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tan); }
+.an-claude-tag   { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+.an-claude-tag::before { content: '◆ '; color: var(--gold); }
+.an-claude-row   { display: grid; grid-template-columns: 60px 1fr; gap: 16px; align-items: start;
+                   border-left: 2px solid var(--border); padding: 4px 0 4px 16px; margin-bottom: 14px; }
+.an-claude-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); padding-top: 2px; }
+.an-claude-text  { font-size: 13px; line-height: 1.65; color: var(--text); letter-spacing: 0.01em; margin: 0; max-width: 72ch; }
+.an-c-thesis     { border-left-color: var(--orange); }
+.an-c-bull       { border-left-color: var(--tan); }
+.an-c-bear       { border-left-color: var(--neg); }
+.an-c-watch      { border-left-color: var(--gold); }
+
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -409,7 +431,10 @@ body::after {
 <div id="app">
 
   <header id="header">
-    <span id="header-brand">vedra &amp; co</span>
+    <div id="header-brand-stack">
+      <span id="header-brand">Vedra Research</span>
+      <span id="header-poweredby">Powered by Claude</span>
+    </div>
     <span style="color:var(--orange)">|</span>
     <span id="header-title"></span>
     <span id="header-gain"></span>
@@ -477,6 +502,8 @@ body::after {
           <button class="wl-tf" data-tf="3M">3M</button>
           <button class="wl-tf" data-tf="6M">6M</button>
           <button class="wl-tf" data-tf="YTD">YTD</button>
+          <button class="wl-tf" data-tf="2Y">2Y</button>
+          <button class="wl-tf" data-tf="5Y">5Y</button>
         </div>
       </div>
       <div id="watchlist-rows"></div>
@@ -771,7 +798,7 @@ function build3DRing(containerId, labels, values, totalValue, colors) {
   const centerEl = document.createElement('div');
   centerEl.className = 'chart-center';
   centerEl.innerHTML =
-    `<div id="${containerId}-cv" style="font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:0.04em;color:var(--tan);font-weight:bold">${fmt$(totalValue)}</div>` +
+    `<div id="${containerId}-cv" style="font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:18px;letter-spacing:0.04em;color:var(--tan);font-weight:bold;text-shadow:0 0 8px rgba(255,255,255,0.55),0 0 20px rgba(255,255,255,0.28)">${fmt$(totalValue)}</div>` +
     `<div id="${containerId}-cs" style="font-size:10px;letter-spacing:0.14em;color:var(--dim);margin-top:4px;text-transform:uppercase"></div>`;
   container.appendChild(centerEl);
   const centerVal = document.getElementById(containerId + '-cv');
@@ -1267,8 +1294,8 @@ function _drawAnalysisChart(prices) {
 
 function renderAnalysisPanel(w) {
   const h        = w.history || {};
-  const TFS      = ['1W', '1M', '3M', '6M', 'YTD'];
-  const longHist = (h.YTD && h.YTD.length > 5) ? h.YTD : ((h['6M'] && h['6M'].length > 5) ? h['6M'] : []);
+  const TFS      = ['1W', '1M', '3M', '6M', 'YTD', '2Y', '5Y'];
+  const longHist = [h['5Y'], h['2Y'], h.YTD, h['6M']].find(s => s && s.length > 5) || [];
 
   const METRICS = [
     { label: '1W',  val: _pctRet(h['1W']  || []) },
@@ -1276,6 +1303,8 @@ function renderAnalysisPanel(w) {
     { label: '3M',  val: _pctRet(h['3M']  || []) },
     { label: '6M',  val: _pctRet(h['6M']  || []) },
     { label: 'YTD', val: _pctRet(h.YTD    || []) },
+    { label: '2Y',  val: _pctRet(h['2Y']  || []) },
+    { label: '5Y',  val: _pctRet(h['5Y']  || []) },
     { label: 'VOL', val: _annualVol(longHist), isVol: true },
     { label: 'MDD', val: _maxDD(longHist),     isMdd: true },
   ];
@@ -1295,6 +1324,26 @@ function renderAnalysisPanel(w) {
     return `<div class="an-metric"><span class="an-m-label">${m.label}</span><span class="an-m-val ${cls}">${text}</span></div>`;
   }
 
+  const a = w.analysis || {};
+  const claudeRows = [
+    { k: 'Thesis', v: a.thesis, cls: 'an-c-thesis' },
+    { k: 'Bull',   v: a.bull,   cls: 'an-c-bull' },
+    { k: 'Bear',   v: a.bear,   cls: 'an-c-bear' },
+    { k: 'Watch',  v: a.watch,  cls: 'an-c-watch' },
+  ].filter(r => r.v && r.v.trim());
+  const claudeHTML = claudeRows.length ? `
+    <div class="an-claude">
+      <div class="an-claude-head">
+        <span class="an-claude-title">Deep Analysis</span>
+        <span class="an-claude-tag">Powered by Claude</span>
+      </div>
+      ${claudeRows.map(r => `
+        <div class="an-claude-row ${r.cls}">
+          <span class="an-claude-label">${r.k}</span>
+          <p class="an-claude-text">${escapeHTML(r.v)}</p>
+        </div>`).join('')}
+    </div>` : '';
+
   document.getElementById('analysis-hint').textContent = '';
   document.getElementById('analysis-content').innerHTML = `
     <div class="an-header">
@@ -1305,6 +1354,7 @@ function renderAnalysisPanel(w) {
     </div>
     <div id="an-chart-wrap"><canvas id="an-chart"></canvas></div>
     <div class="an-metrics">${METRICS.map(metricHTML).join('')}</div>
+    ${claudeHTML}
     ${w.description ? `<p class="an-desc">${escapeHTML(w.description)}</p>` : ''}
   `;
   _drawAnalysisChart((h[activeAnalysisTF] || h.YTD || h['6M'] || []));

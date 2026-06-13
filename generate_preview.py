@@ -22,18 +22,24 @@ _JPM_6M   = _trend(228.0, 248.3, 126)
 _JPM_3M   = _trend(237.0, 248.3, 63)
 _JPM_1M   = _trend(241.0, 248.3, 21)
 _JPM_1W   = [246.10, 248.90, 247.20, 249.80, 248.30]
+_JPM_2Y   = _trend(148.0, 248.3, 120)
+_JPM_5Y   = _trend(96.0,  248.3, 120)
 
 _GOOGL_YTD = _trend(192.0, 156.8, 80)
 _GOOGL_6M  = _trend(182.0, 156.8, 126)
 _GOOGL_3M  = _trend(175.0, 156.8, 63)
 _GOOGL_1M  = _trend(170.0, 156.8, 21)
 _GOOGL_1W  = [165.40, 163.20, 161.50, 158.90, 156.80]
+_GOOGL_2Y  = _trend(88.0,  156.8, 120)
+_GOOGL_5Y  = _trend(67.0,  156.8, 120)
 
 _META_YTD  = _trend(484.0, 592.4, 80)
 _META_6M   = _trend(510.0, 592.4, 126)
 _META_3M   = _trend(548.0, 592.4, 63)
 _META_1M   = _trend(565.0, 592.4, 21)
 _META_1W   = [572.00, 578.40, 584.20, 589.80, 592.40]
+_META_2Y   = _trend(118.0, 592.4, 120)
+_META_5Y   = _trend(195.0, 592.4, 120)
 
 _NVDA_1M  = _trend(88.0,  118.0, 21)
 _AAPL_1M  = _trend(192.0, 199.0, 21)
@@ -82,21 +88,39 @@ PAYLOAD = {
             "signal": "BULLISH", "reason": "strong momentum",
             "description": "Largest US bank by assets. Runs consumer banking, investment banking, and asset management. Earns on interest rate spread and fee income from capital markets.",
             "sector": "Financial Services",
-            "history": {"1W": _JPM_1W, "1M": _JPM_1M, "3M": _JPM_3M, "6M": _JPM_6M, "YTD": _JPM_YTD},
+            "history": {"1W": _JPM_1W, "1M": _JPM_1M, "3M": _JPM_3M, "6M": _JPM_6M, "YTD": _JPM_YTD, "2Y": _JPM_2Y, "5Y": _JPM_5Y},
+            "analysis": {
+                "thesis": "Earnings scale with rates and capital-markets activity; a diversified mix of net interest income and fee income smooths the cycle.",
+                "bull": "Higher-for-longer rates widen net interest margin while a deal rebound lifts investment-banking fees.",
+                "bear": "Rate cuts compress margins and a credit downturn raises loan-loss provisions.",
+                "watch": "Net interest income guidance and the trajectory of credit-card charge-off rates.",
+            },
         },
         {
             "ticker": "GOOGL", "label": "Alphabet", "price": 156.80,
             "signal": "BEARISH", "reason": "downtrend",
             "description": "Parent company of Google. Sells search advertising, cloud computing (GCP), and hardware. Search and YouTube make up over 80% of revenue.",
             "sector": "Communication Services",
-            "history": {"1W": _GOOGL_1W, "1M": _GOOGL_1M, "3M": _GOOGL_3M, "6M": _GOOGL_6M, "YTD": _GOOGL_YTD},
+            "history": {"1W": _GOOGL_1W, "1M": _GOOGL_1M, "3M": _GOOGL_3M, "6M": _GOOGL_6M, "YTD": _GOOGL_YTD, "2Y": _GOOGL_2Y, "5Y": _GOOGL_5Y},
+            "analysis": {
+                "thesis": "Search advertising funds heavy investment in cloud and AI; Cloud is now profitable and growing faster than the core.",
+                "bull": "Gemini integration defends search share and AI demand accelerates Cloud margins.",
+                "bear": "AI chat assistants erode search query volume and the DOJ remedy forces structural change.",
+                "watch": "Search revenue growth rate and Google Cloud operating margin each quarter.",
+            },
         },
         {
             "ticker": "META", "label": "Meta Platforms", "price": 592.40,
             "signal": "BULLISH", "reason": "strong momentum",
             "description": "Owns Facebook, Instagram, and WhatsApp. Revenue is almost entirely digital advertising sold against 3 billion daily active users. Also investing heavily in VR hardware.",
             "sector": "Communication Services",
-            "history": {"1W": _META_1W, "1M": _META_1M, "3M": _META_3M, "6M": _META_6M, "YTD": _META_YTD},
+            "history": {"1W": _META_1W, "1M": _META_1M, "3M": _META_3M, "6M": _META_6M, "YTD": _META_YTD, "2Y": _META_2Y, "5Y": _META_5Y},
+            "analysis": {
+                "thesis": "Ad revenue from 3 billion daily users funds AI-driven targeting gains; engagement and price-per-ad both trend up.",
+                "bull": "AI recommendations lift time-spent and ad pricing while Reality Labs losses narrow.",
+                "bear": "Reality Labs keeps burning cash and a soft ad market hits the single revenue line.",
+                "watch": "Reality Labs operating loss and ad price-per-impression growth.",
+            },
         },
     ],
     "totals": {

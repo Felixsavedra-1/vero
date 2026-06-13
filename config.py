@@ -25,10 +25,12 @@ TRADING_DAYS_PER_YEAR: int   = 252     # US equity convention
 # Day of month savings accounts credit interest (1–28). Set to None to disable.
 INTEREST_PAYMENT_DAY: int | None = None
 
-# Lookback windows in trading days (1 week ≈ 5, 1 month ≈ 21).
+# Lookback windows in trading days (1 week ≈ 5, 1 month ≈ 21, 1 year ≈ 252).
 BRIEF_WINDOW_1D: int = 1
 BRIEF_WINDOW_1W: int = 5
 BRIEF_WINDOW_1M: int = 21
+BRIEF_WINDOW_2Y: int = 504
+BRIEF_WINDOW_5Y: int = 1260
 
 # Watchlist momentum signal: 1M returns within ±MOMENTUM_FLAT_BAND are NEUTRAL.
 MOMENTUM_FLAT_BAND: float = 0.01

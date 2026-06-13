@@ -24,22 +24,23 @@ import yfinance as yf
 from config import DATA_DIR
 
 LOOKBACK_DAYS = 7  # look back up to 7 calendar days to find the prior trading close
-_DESC_CACHE_FILE    = DATA_DIR / 'watchlist_descriptions_cache.json'
-_DESC_CACHE_TTL_DAYS = 30
+_DESC_CACHE_FILE     = DATA_DIR / 'watchlist_descriptions_cache.json'
+_ANALYSIS_CACHE_FILE = DATA_DIR / 'watchlist_analysis_cache.json'
+_CACHE_TTL_DAYS = 30
 
 
-def _load_desc_cache() -> dict[str, Any]:
-    if _DESC_CACHE_FILE.exists():
+def _load_cache(path: Path) -> dict[str, Any]:
+    if path.exists():
         try:
-            return json.loads(_DESC_CACHE_FILE.read_text())
+            return json.loads(path.read_text())
         except (FileNotFoundError, json.JSONDecodeError):
             pass
     return {}
 
 
-def _save_desc_cache(cache: dict) -> None:
-    _DESC_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    _DESC_CACHE_FILE.write_text(json.dumps(cache, indent=2))
+def _save_cache(path: Path, cache: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(cache, indent=2))
 
 
 def _is_cache_fresh(entry: dict) -> bool:
@@ -49,7 +50,7 @@ def _is_cache_fresh(entry: dict) -> bool:
     dt = datetime.fromisoformat(ts)
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) - dt < timedelta(days=_DESC_CACHE_TTL_DAYS)
+    return datetime.now(timezone.utc) - dt < timedelta(days=_CACHE_TTL_DAYS)
 
 
 def _first_sentences(text: str, n: int = 3) -> str:
@@ -219,14 +220,15 @@ def fetch_prices_with_change(tickers: list[str]) -> dict[str, dict[str, float | 
 
 def fetch_watchlist_history(tickers: list[str]) -> dict[str, dict[str, list[float]]]:
     """
-    Returns {ticker: {"1W": [...], "1M": [...], "3M": [...], "6M": [...], "YTD": [...]}}
+    Returns {ticker: {"1W": [...], "1M": [...], "3M": [...], "6M": [...],
+                      "YTD": [...], "2Y": [...], "5Y": [...]}}
     Each list is daily closing prices, oldest to newest. Single network call.
     """
     if not tickers:
         return {}
 
     with yf_warnings():
-        data = yf.download(tickers, period='1y', progress=False, auto_adjust=True)
+        data = yf.download(tickers, period='5y', progress=False, auto_adjust=True)
 
     if data.empty:
         return {}
@@ -251,6 +253,8 @@ def fetch_watchlist_history(tickers: list[str]) -> dict[str, dict[str, list[floa
             '3M':  all_p[max(0, n - 63):],
             '6M':  all_p[max(0, n - 126):],
             'YTD': ytd_p if ytd_p else all_p[-1:],
+            '2Y':  all_p[max(0, n - 504):],
+            '5Y':  all_p[:],
         }
 
     return result
@@ -261,7 +265,7 @@ def fetch_watchlist_info(tickers: list[str]) -> dict[str, dict[str, str]]:
     Returns {ticker: {"description": str, "sector": str}} for each ticker.
     Descriptions are rewritten by Claude for concision and cached for 30 days.
     """
-    cache  = _load_desc_cache()
+    cache  = _load_cache(_DESC_CACHE_FILE)
     result: dict[str, dict[str, str]] = {}
     dirty  = False
 
@@ -292,6 +296,89 @@ def fetch_watchlist_info(tickers: list[str]) -> dict[str, dict[str, str]]:
                 result[ticker] = {'description': '', 'sector': ''}
 
     if dirty:
-        _save_desc_cache(cache)
+        _save_cache(_DESC_CACHE_FILE, cache)
+
+    return result
+
+
+_ANALYSIS_KEYS = ('thesis', 'bull', 'bear', 'watch')
+
+
+def _series_return(prices: list[float]) -> float | None:
+    """Total return (%) across a price series, or None if it can't be computed."""
+    if not prices or len(prices) < 2 or prices[0] == 0:
+        return None
+    return (prices[-1] / prices[0] - 1) * 100
+
+
+def _generate_analysis(ticker: str, sector: str, returns: dict[str, float | None]) -> dict[str, str]:
+    """Claude (Sonnet) structured equity brief. Raises on API/parse failure."""
+    import anthropic   # optional dependency
+    client = anthropic.Anthropic()
+    ret_line = ', '.join(f"{k} {v:+.1f}%" for k, v in returns.items() if v is not None) \
+        or 'no usable return history'
+    client_msg = (
+        f"You are an equity analyst. Write a tight investment brief for {ticker}"
+        f"{f' ({sector})' if sector else ''}.\n"
+        f"Recent total returns: {ret_line}.\n\n"
+        "Return ONLY a JSON object with exactly these keys, each 1-2 blunt, factual "
+        "sentences. No filler, no adjectives like 'leading', 'strong', or 'innovative'.\n"
+        '{"thesis": "core investment case", "bull": "upside scenario", '
+        '"bear": "main risk", "watch": "the one metric or event to monitor next"}'
+    )
+    msg = client.messages.create(
+        model='claude-sonnet-4-6',
+        max_tokens=400,
+        messages=[{'role': 'user', 'content': client_msg}],
+    )
+    text = msg.content[0].text.strip()
+    if text.startswith('```'):
+        text = re.sub(r'^```[a-z]*\n?|\n?```$', '', text).strip()
+    data = json.loads(text)
+    return {k: str(data.get(k, '')).strip() for k in _ANALYSIS_KEYS}
+
+
+def fetch_watchlist_analysis(
+    tickers: list[str],
+    history: dict[str, dict[str, list[float]]],
+    info: dict[str, dict[str, str]] | None = None,
+) -> dict[str, dict[str, str]]:
+    """
+    Claude-generated structured analysis {ticker: {thesis, bull, bear, watch}}.
+    Runs at build time only when ANTHROPIC_API_KEY is set; cached 30 days. A ticker
+    is omitted on missing key or failure, so the dashboard falls back to its
+    quantitative-only panel.
+    """
+    if not tickers or not os.environ.get('ANTHROPIC_API_KEY'):
+        return {}
+
+    info   = info or {}
+    cache  = _load_cache(_ANALYSIS_CACHE_FILE)
+    result: dict[str, dict[str, str]] = {}
+    dirty  = False
+
+    for ticker in tickers:
+        cached = cache.get(ticker, {})
+        if _is_cache_fresh(cached):
+            result[ticker] = {k: cached.get(k, '') for k in _ANALYSIS_KEYS}
+            continue
+        h       = history.get(ticker, {})
+        sector  = info.get(ticker, {}).get('sector', '')
+        returns = {w: _series_return(h.get(w, [])) for w in ('1M', '6M', 'YTD', '2Y', '5Y')}
+        try:
+            analysis = _generate_analysis(ticker, sector, returns)
+        except Exception as exc:
+            print(
+                f"  Warning: could not generate analysis for {ticker} "
+                f"({type(exc).__name__}): {exc}",
+                file=sys.stderr,
+            )
+            continue
+        result[ticker] = analysis
+        cache[ticker]  = {**analysis, 'cached_at': datetime.now(timezone.utc).isoformat()}
+        dirty = True
+
+    if dirty:
+        _save_cache(_ANALYSIS_CACHE_FILE, cache)
 
     return result

@@ -18,7 +18,7 @@ from ledger import (
     load_goals, load_holdings, load_savings,
 )
 from metrics import momentum_signal
-from prices import fetch_prices_batch, fetch_prices_with_change, fetch_watchlist_history, fetch_watchlist_info
+from prices import fetch_prices_batch, fetch_prices_with_change, fetch_watchlist_analysis, fetch_watchlist_history, fetch_watchlist_info
 
 OUT_FILE     = DATA_DIR / "dashboard.html"
 TEMPLATE     = Path(__file__).parent / "dashboard.html"
@@ -120,10 +120,11 @@ def _build_watchlist_data() -> list[dict]:
     """Fetch prices, signals, and descriptions for all watchlist tickers."""
     if not WATCHLIST:
         return []
-    wl_tickers = list(WATCHLIST.keys())
-    wl_prices  = fetch_prices_batch(wl_tickers)
-    wl_history = fetch_watchlist_history(wl_tickers)
-    wl_info    = fetch_watchlist_info(wl_tickers)
+    wl_tickers  = list(WATCHLIST.keys())
+    wl_prices   = fetch_prices_batch(wl_tickers)
+    wl_history  = fetch_watchlist_history(wl_tickers)
+    wl_info     = fetch_watchlist_info(wl_tickers)
+    wl_analysis = fetch_watchlist_analysis(wl_tickers, wl_history, wl_info)
     rows = []
     for ticker, label in WATCHLIST.items():
         history = wl_history.get(ticker, {})
@@ -138,6 +139,7 @@ def _build_watchlist_data() -> list[dict]:
             "history":     history,
             "description": info.get("description", ""),
             "sector":      info.get("sector", ""),
+            "analysis":    wl_analysis.get(ticker, {}),
         })
     return rows
 
