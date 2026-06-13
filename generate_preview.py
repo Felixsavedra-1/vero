@@ -2,6 +2,8 @@
 generate_preview.py — Write a static demo dashboard and auto-capture docs/dashboard-preview.png.
 """
 
+import itertools
+import math
 import random
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -12,10 +14,27 @@ DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.png"
 random.seed(42)  # deterministic demo data for reproducible screenshots
 
 
-def _trend(start: float, end: float, n: int) -> list[float]:
-    """Linear price series with slight noise for a realistic sparkline."""
-    step = (end - start) / (n - 1)
-    return [round(start + step * i + random.uniform(-step * 0.4, step * 0.4), 2) for i in range(n)]
+def _trend(start: float, end: float, n: int, vol: float = 0.022) -> list[float]:
+    """Realistic price series via a geometric Brownian bridge.
+
+    A ruled line + tiny noise reads as fake on a multi-year chart. Instead we walk
+    a Gaussian random series and pin both endpoints (Brownian bridge), so the path
+    wanders like a real stock while still hitting `start`/`end` exactly — keeping the
+    displayed % returns correct. `vol` is the per-step log-return std; more steps
+    naturally accumulate more drift, so longer windows look livelier on their own.
+    """
+    if n < 2:
+        return [round(start, 2)] * max(n, 1)
+    incr = [random.gauss(0.0, vol) for _ in range(n - 1)]
+    walk = [0.0] + list(itertools.accumulate(incr))            # W[0]=0, length n
+    bridge = [w - walk[-1] * i / (n - 1) for i, w in enumerate(walk)]  # both ends pinned to 0
+    log_start, log_end = math.log(start), math.log(end)
+    out = [
+        round(math.exp(log_start + (log_end - log_start) * i / (n - 1) + bridge[i]), 2)
+        for i in range(n)
+    ]
+    out[0], out[-1] = round(start, 2), round(end, 2)
+    return out
 
 _JPM_YTD  = _trend(218.0, 248.3, 80)
 _JPM_6M   = _trend(228.0, 248.3, 126)

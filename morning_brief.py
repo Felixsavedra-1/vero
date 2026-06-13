@@ -166,7 +166,6 @@ class MorningBrief:
             RISK_MIN_OBSERVATIONS,
         )
 
-
     def _current_price(self, ticker: str) -> float:
         if ticker not in self._prices.columns:
             return float('nan')

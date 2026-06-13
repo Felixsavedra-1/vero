@@ -19,10 +19,8 @@ from generate_preview import write_preview_html
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.gif"
 VIEWPORT: ViewportSize = {"width": 1180, "height": 680}
 INITIAL_WAIT_MS = 600   # Three.js CDN load + first render
-FRAME_INTERVAL_MS = 75  # ~13fps
+FRAME_INTERVAL_MS = 75  # ~13 fps
 PALETTE_COLORS = 180
-
-# The featured company whose deep-analysis panel the tour opens.
 DEMO_TICKER = "JPM"
 
 
@@ -36,14 +34,11 @@ def _ease(t: float) -> float:
 
 
 class Recorder:
-    """Captures frames on demand and holds shared scroll geometry."""
-
     def __init__(self, page: Page) -> None:
         self.page = page
         self.frames: list[Image.Image] = []
 
     def shoot(self, n: int = 1) -> None:
-        """Grab n frames, pausing FRAME_INTERVAL_MS between each."""
         for _ in range(n):
             raw = self.page.screenshot()
             self.frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
@@ -59,41 +54,37 @@ class Recorder:
         )
 
     def ease_scroll(self, target_y: float, steps: int) -> None:
-        """Animate window scroll from current Y to target_y, capturing one frame per step."""
         start_y = self.page.evaluate("window.scrollY")
         for i in range(1, steps + 1):
-            y = start_y + (target_y - start_y) * _ease(i / steps)
-            self.scroll_to(y)
+            self.scroll_to(start_y + (target_y - start_y) * _ease(i / steps))
             self.shoot()
 
 
 def capture_frames(page: Page) -> list[Image.Image]:
+    """Choreograph the tour: rings → watchlist → click a company → deep-analysis brief.
+
+    Panels are pinned by subtracting the sticky-header height from each scroll target.
+    """
     rec = Recorder(page)
     header_h = page.evaluate("document.querySelector('header')?.offsetHeight || 0")
 
-    # ── Segment 1: rings at the top ──────────────────────────────────────────
     rec.scroll_to(0)
     portfolio_bbox = page.locator("#chart-portfolio canvas").bounding_box()
     rec.shoot(6)
-    if portfolio_bbox:  # nudge the 3D portfolio ring so it glows/spins under the cursor
+    if portfolio_bbox:
         page.mouse.move(*_bounding_box_center_offset(portfolio_bbox, 0.70, 0.50))
     rec.shoot(8)
 
-    # ── Segment 2: scroll down to reveal the watchlist ───────────────────────
-    watchlist_y = rec.offset_top("#watchlist-panel") - header_h - 12
-    rec.ease_scroll(watchlist_y, steps=16)
-    rec.shoot(8)  # hold on the full watchlist (sparklines + signals)
+    rec.ease_scroll(rec.offset_top("#watchlist-panel") - header_h - 12, steps=16)
+    rec.shoot(8)
 
-    # ── Segment 3: click a company → render + scroll to deep analysis ────────
     page.locator(f'.wl-row[data-ticker="{DEMO_TICKER}"] .wl-name').click()
-    rec.shoot(6)  # let the in-app smooth scroll + render settle
-    analysis_y = rec.offset_top("#analysis-panel") - header_h - 12
-    rec.ease_scroll(analysis_y, steps=4)  # pin analysis cleanly under the sticky header
-    rec.shoot(10)  # dwell on the Thesis / Bull / Bear / Watch brief
+    rec.shoot(6)
+    rec.ease_scroll(rec.offset_top("#analysis-panel") - header_h - 12, steps=4)
+    rec.shoot(10)
 
-    # ── Segment 4: timeframe flourish — animate the chart redraw ─────────────
     page.locator('#analysis-panel [data-an-tf="5Y"]').click()
-    rec.shoot(14)  # hold on the finished analysis view (last frame rests here)
+    rec.shoot(14)
 
     return rec.frames
 
@@ -101,9 +92,7 @@ def capture_frames(page: Page) -> list[Image.Image]:
 def assemble_gif(frames: list[Image.Image]) -> None:
     if not frames:
         raise ValueError("No frames captured — GIF assembly aborted")
-    # Derive a single palette from a mid-tour frame (which contains the watchlist +
-    # analysis colors) and quantize every frame against it, so colors stay consistent
-    # across the scroll (no per-frame palette flicker).
+    # Quantize every frame against one palette so colors don't flicker across the scroll.
     ref = frames[len(frames) // 2]
     palette_ref = ref.quantize(colors=PALETTE_COLORS, method=Image.Quantize.MEDIANCUT)
     quantized = [f.quantize(palette=palette_ref) for f in frames]
