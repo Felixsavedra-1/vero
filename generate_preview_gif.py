@@ -1,5 +1,8 @@
 """
-generate_preview_gif.py — Capture an animated GIF of the dashboard for README.md.
+generate_preview_gif.py — Capture an animated, scrolling GIF of the dashboard for README.md.
+
+Guided tour: 3D allocation rings → scroll to the watchlist → click a company →
+land on the Claude-powered Deep Analysis panel (Thesis / Bull / Bear / Watch + chart).
 
 Usage:  python generate_preview_gif.py
 Output: docs/dashboard-preview.gif
@@ -14,44 +17,96 @@ from playwright.sync_api import FloatRect, ViewportSize, sync_playwright, Page
 from generate_preview import write_preview_html
 
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.gif"
-VIEWPORT: ViewportSize = {"width": 1280, "height": 720}
+VIEWPORT: ViewportSize = {"width": 1180, "height": 680}
 INITIAL_WAIT_MS = 600   # Three.js CDN load + first render
-FRAME_COUNT = 45
-FRAME_INTERVAL_MS = 80  # ~12fps → 3.6s loop
+FRAME_INTERVAL_MS = 75  # ~13fps
+PALETTE_COLORS = 180
+
+# The featured company whose deep-analysis panel the tour opens.
+DEMO_TICKER = "JPM"
 
 
 def _bounding_box_center_offset(bbox: FloatRect, x_pct: float, y_pct: float) -> tuple[float, float]:
     return bbox["x"] + bbox["width"] * x_pct, bbox["y"] + bbox["height"] * y_pct
 
 
+def _ease(t: float) -> float:
+    """easeInOutQuad — smooth start/stop for the scroll reveal."""
+    return 2 * t * t if t < 0.5 else 1 - (-2 * t + 2) ** 2 / 2
+
+
+class Recorder:
+    """Captures frames on demand and holds shared scroll geometry."""
+
+    def __init__(self, page: Page) -> None:
+        self.page = page
+        self.frames: list[Image.Image] = []
+
+    def shoot(self, n: int = 1) -> None:
+        """Grab n frames, pausing FRAME_INTERVAL_MS between each."""
+        for _ in range(n):
+            raw = self.page.screenshot()
+            self.frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
+            self.page.wait_for_timeout(FRAME_INTERVAL_MS)
+
+    def scroll_to(self, y: float) -> None:
+        self.page.evaluate(f"window.scrollTo(0, {y})")
+
+    def offset_top(self, selector: str) -> float:
+        return self.page.evaluate(
+            "s => document.querySelector(s)?.getBoundingClientRect().top + window.scrollY",
+            selector,
+        )
+
+    def ease_scroll(self, target_y: float, steps: int) -> None:
+        """Animate window scroll from current Y to target_y, capturing one frame per step."""
+        start_y = self.page.evaluate("window.scrollY")
+        for i in range(1, steps + 1):
+            y = start_y + (target_y - start_y) * _ease(i / steps)
+            self.scroll_to(y)
+            self.shoot()
+
+
 def capture_frames(page: Page) -> list[Image.Image]:
-    frames: list[Image.Image] = []
+    rec = Recorder(page)
+    header_h = page.evaluate("document.querySelector('header')?.offsetHeight || 0")
 
+    # ── Segment 1: rings at the top ──────────────────────────────────────────
+    rec.scroll_to(0)
     portfolio_bbox = page.locator("#chart-portfolio canvas").bounding_box()
-    savings_bbox = page.locator("#chart-savings canvas").bounding_box()
+    rec.shoot(6)
+    if portfolio_bbox:  # nudge the 3D portfolio ring so it glows/spins under the cursor
+        page.mouse.move(*_bounding_box_center_offset(portfolio_bbox, 0.70, 0.50))
+    rec.shoot(8)
 
-    for i in range(FRAME_COUNT):
-        # Hover into portfolio ring outer slice to trigger particle/glow effects
-        if i == FRAME_COUNT // 3 and portfolio_bbox:
-            page.mouse.move(*_bounding_box_center_offset(portfolio_bbox, 0.70, 0.50))
-        # Shift hover to savings ring
-        elif i == (FRAME_COUNT * 2) // 3 and savings_bbox:
-            page.mouse.move(*_bounding_box_center_offset(savings_bbox, 0.30, 0.50))
+    # ── Segment 2: scroll down to reveal the watchlist ───────────────────────
+    watchlist_y = rec.offset_top("#watchlist-panel") - header_h - 12
+    rec.ease_scroll(watchlist_y, steps=16)
+    rec.shoot(8)  # hold on the full watchlist (sparklines + signals)
 
-        raw = page.screenshot()
-        frames.append(Image.open(io.BytesIO(raw)).convert("RGB"))
-        page.wait_for_timeout(FRAME_INTERVAL_MS)
+    # ── Segment 3: click a company → render + scroll to deep analysis ────────
+    page.locator(f'.wl-row[data-ticker="{DEMO_TICKER}"] .wl-name').click()
+    rec.shoot(6)  # let the in-app smooth scroll + render settle
+    analysis_y = rec.offset_top("#analysis-panel") - header_h - 12
+    rec.ease_scroll(analysis_y, steps=4)  # pin analysis cleanly under the sticky header
+    rec.shoot(10)  # dwell on the Thesis / Bull / Bear / Watch brief
 
-    return frames
+    # ── Segment 4: timeframe flourish — animate the chart redraw ─────────────
+    page.locator('#analysis-panel [data-an-tf="5Y"]').click()
+    rec.shoot(14)  # hold on the finished analysis view (last frame rests here)
+
+    return rec.frames
 
 
 def assemble_gif(frames: list[Image.Image]) -> None:
     if not frames:
         raise ValueError("No frames captured — GIF assembly aborted")
-    # Derive a single palette from the first frame; quantize all frames against it
-    # so colors stay consistent across the loop (no per-frame palette flicker).
-    palette_ref = frames[0].quantize(colors=200, method=Image.Quantize.MEDIANCUT)
-    quantized = [palette_ref] + [f.quantize(palette=palette_ref) for f in frames[1:]]
+    # Derive a single palette from a mid-tour frame (which contains the watchlist +
+    # analysis colors) and quantize every frame against it, so colors stay consistent
+    # across the scroll (no per-frame palette flicker).
+    ref = frames[len(frames) // 2]
+    palette_ref = ref.quantize(colors=PALETTE_COLORS, method=Image.Quantize.MEDIANCUT)
+    quantized = [f.quantize(palette=palette_ref) for f in frames]
 
     DOCS_OUT.parent.mkdir(parents=True, exist_ok=True)
     quantized[0].save(
@@ -78,7 +133,7 @@ def main() -> None:
 
     assemble_gif(frames)
     size_kb = DOCS_OUT.stat().st_size // 1024
-    print(f"GIF saved: {DOCS_OUT}  ({size_kb} KB, {FRAME_COUNT} frames @ {FRAME_INTERVAL_MS}ms)")
+    print(f"GIF saved: {DOCS_OUT}  ({size_kb} KB, {len(frames)} frames @ {FRAME_INTERVAL_MS}ms)")
 
 
 if __name__ == "__main__":
