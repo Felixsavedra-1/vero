@@ -287,8 +287,9 @@ def _plot_sharpe(ax: Axes, result: AnalysisResult) -> None:
 def _plot_allocation(ax: Axes, result: AnalysisResult) -> None:
     weights = list(result.weights.values())
     labels  = [f"{t}\n({w:.1%})" for t, w in result.weights.items()]
-    ax.pie(weights, labels=labels, autopct='',
-           colors=plt.cm.Set3(range(len(result.weights))), startangle=90)  # type: ignore[attr-defined]
+    cmap    = plt.get_cmap('Set3')
+    colors  = [cmap(i) for i in range(len(result.weights))]
+    ax.pie(weights, labels=labels, autopct='', colors=colors, startangle=90)
     ax.set_title('Portfolio Allocation', fontweight='bold')
 
 
