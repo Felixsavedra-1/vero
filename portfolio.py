@@ -13,7 +13,7 @@ from display import render_gains, render_history, render_holdings
 from ledger import (
     Holding, SavingsAccount, Transaction,
     GOAL_KEY_PORTFOLIO, GOAL_KEY_SAVINGS,
-    _payment_dates, accrued_interest, projected_next_payment,
+    payment_dates, accrued_interest, projected_next_payment,
     append_transaction, load_goals, load_holdings, load_savings,
     load_transactions, save_goals, save_holdings, save_savings,
 )
@@ -67,7 +67,7 @@ def cmd_buy(args: argparse.Namespace, prompt: Callable[[str], str] = input) -> N
 
     label = None
     if is_new:
-        label   = fetch_label(ticker)   # falls back to ticker symbol on failure
+        label   = fetch_label(ticker)
         confirm = prompt(
             f'\n  Opening new position: {ticker}  [{label}]\n'
             f'  Invest ${dollars:,.2f} — confirm? [y/N] '
@@ -255,7 +255,7 @@ def cmd_savings_set(args: argparse.Namespace) -> None:
         name=name, balance=args.balance, apy=args.apy / 100, bank=args.bank or '',
     ))
     save_savings(accounts, SAVINGS_FILE)
-    print(f'\n  Added  {name}  ${args.balance:,.2f}  ({args.apy:.2f}% APY)\n')
+    print(f'\n  Added  {name}  ${args.balance:,.2f}  ({args.apy / 100:.2%} APY)\n')
 
 
 def cmd_savings_remove(args: argparse.Namespace) -> None:
@@ -277,7 +277,7 @@ def cmd_savings_interest(_args: argparse.Namespace) -> None:
         return
 
     today        = date.today()
-    _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today)
+    _, next_date = payment_dates(INTEREST_PAYMENT_DAY, today)
     days_until   = (next_date - today).days
     print(f'\n  Savings interest  ·  payment day: {INTEREST_PAYMENT_DAY}{_ordinal(INTEREST_PAYMENT_DAY)} of every month\n')
 

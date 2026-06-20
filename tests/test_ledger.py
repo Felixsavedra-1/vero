@@ -13,7 +13,7 @@ from ledger import (
     Holding,
     SavingsAccount,
     Transaction,
-    _payment_dates,
+    payment_dates,
     accrued_interest,
     append_transaction,
     load_goals,
@@ -317,32 +317,32 @@ class TestMarketValueWeights:
 
 class TestPaymentDates:
     def test_today_is_payment_day(self):
-        last, next_ = _payment_dates(15, date(2025, 3, 15))
+        last, next_ = payment_dates(15, date(2025, 3, 15))
         assert last  == date(2025, 3, 15)
         assert next_ == date(2025, 4, 15)
 
     def test_before_payment_day(self):
-        last, next_ = _payment_dates(15, date(2025, 3, 10))
+        last, next_ = payment_dates(15, date(2025, 3, 10))
         assert last  == date(2025, 2, 15)
         assert next_ == date(2025, 3, 15)
 
     def test_after_payment_day(self):
-        last, next_ = _payment_dates(15, date(2025, 3, 20))
+        last, next_ = payment_dates(15, date(2025, 3, 20))
         assert last  == date(2025, 3, 15)
         assert next_ == date(2025, 4, 15)
 
     def test_december_wraps_to_january(self):
-        last, next_ = _payment_dates(15, date(2025, 12, 20))
+        last, next_ = payment_dates(15, date(2025, 12, 20))
         assert last  == date(2025, 12, 15)
         assert next_ == date(2026, 1, 15)
 
     def test_january_before_payment_wraps_to_december(self):
-        last, next_ = _payment_dates(15, date(2025, 1, 5))
+        last, next_ = payment_dates(15, date(2025, 1, 5))
         assert last  == date(2024, 12, 15)
         assert next_ == date(2025, 1, 15)
 
     def test_clamps_to_month_end_in_february(self):
-        last, next_ = _payment_dates(31, date(2025, 2, 15))
+        last, next_ = payment_dates(31, date(2025, 2, 15))
         assert last  == date(2025, 1, 31)
         assert next_ == date(2025, 2, 28)
 

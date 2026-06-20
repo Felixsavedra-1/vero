@@ -11,7 +11,7 @@ _WIDTH_GAINS    = 76
 _WIDTH_HISTORY  = 88
 
 
-def _pct(val: float) -> str:
+def pct(val: float) -> str:
     return f'{val:+.2%}' if math.isfinite(val) else 'n/a'
 
 
@@ -25,8 +25,8 @@ def _signed_dollar(val: float) -> str:
     return f'{sign}${abs(val):,.2f}'
 
 
-def _pnl_cell(dollars: float, pct: float) -> str:
-    return f'{_signed_dollar(dollars)} ({_pct(pct)})'
+def _pnl_cell(dollars: float, pct_val: float) -> str:
+    return f'{_signed_dollar(dollars)} ({pct(pct_val)})'
 
 
 def _divider(width: int) -> str:

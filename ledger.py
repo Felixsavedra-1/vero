@@ -190,7 +190,7 @@ def save_goals(goals: dict[str, float], path: Path) -> None:
     _atomic_write(path, goals)
 
 
-def _payment_dates(payment_day: int, today: date) -> tuple[date, date]:
+def payment_dates(payment_day: int, today: date) -> tuple[date, date]:
     """Returns (last_payment_date, next_payment_date) for a given day-of-month."""
     def safe_date(year: int, month: int, day: int) -> date:
         return date(year, month, min(day, calendar.monthrange(year, month)[1]))
@@ -215,7 +215,7 @@ def accrued_interest(
 ) -> float:
     """Interest accrued since the last payment date (balance × APY / 365 × days)."""
     today = today or date.today()
-    last, _ = _payment_dates(payment_day, today)
+    last, _ = payment_dates(payment_day, today)
     days = (today - last).days
     return account.balance * account.apy / 365 * days
 
@@ -227,6 +227,6 @@ def projected_next_payment(
 ) -> float:
     """Projected interest for the full current cycle (last → next payment)."""
     today = today or date.today()
-    last, next_ = _payment_dates(payment_day, today)
+    last, next_ = payment_dates(payment_day, today)
     days = (next_ - last).days
     return account.balance * account.apy / 365 * days

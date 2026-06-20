@@ -14,7 +14,7 @@ from config import DATA_DIR, GOALS_FILE, HOLDINGS_FILE, INTEREST_PAYMENT_DAY, MO
 from ledger import (
     Holding,
     GOAL_KEY_PORTFOLIO, GOAL_KEY_SAVINGS,
-    _payment_dates, accrued_interest, projected_next_payment,
+    payment_dates, accrued_interest, projected_next_payment,
     load_goals, load_holdings, load_savings,
 )
 from metrics import momentum_signal
@@ -91,7 +91,7 @@ def _build_savings_data(savings_acc: list, today_d: date) -> tuple[list[dict], f
     total_accrued = 0.0
     days_until: int | None = None
     if INTEREST_PAYMENT_DAY:
-        _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today_d)
+        _, next_date = payment_dates(INTEREST_PAYMENT_DAY, today_d)
         days_until = (next_date - today_d).days
     for acc in savings_acc:
         savings_total += acc.balance

@@ -109,7 +109,7 @@ def assemble_gif(frames: list[Image.Image]) -> None:
 
 
 def main() -> None:
-    html_path = write_preview_html()  # animations enabled
+    html_path = write_preview_html()
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch()

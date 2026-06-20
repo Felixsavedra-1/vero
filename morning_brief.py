@@ -30,10 +30,10 @@ from config import (
     WATCHLIST,
 )
 import dashboard as _dashboard
-from display import _pct
+from display import pct
 from ledger import (
     Holding, SavingsAccount,
-    _payment_dates, accrued_interest, projected_next_payment,
+    payment_dates, accrued_interest, projected_next_payment,
     load_holdings, load_savings,
 )
 from metrics import RiskSnapshot, cost_basis_weights, momentum_signal, risk_snapshot as _compute_risk_snapshot
@@ -246,7 +246,7 @@ class MorningBrief:
         today      = date.today()
         days_until = 0
         if show_accrual:
-            _, next_date = _payment_dates(INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
+            _, next_date = payment_dates(INTEREST_PAYMENT_DAY, today)  # type: ignore[arg-type]
             days_until   = (next_date - today).days
 
         print(f'\n{_BRAND}Savings{_RESET}\n')
@@ -309,7 +309,7 @@ class MorningBrief:
         print(f'  {self._WIDE_DIV}')
         print(
             f"  {'Portfolio':<9} {'—':>9}  {'—':>4}  {self._dollar(total_dollar_pnl):>9}  "
-            f'{_pct(p1d):>8}  {_pct(p1w):>8}  {_pct(p1m):>8}  {_pct(pytd):>8}  {_pct(p2y):>8}  {_pct(p5y):>8}'
+            f'{pct(p1d):>8}  {pct(p1w):>8}  {pct(p1m):>8}  {pct(pytd):>8}  {pct(p2y):>8}  {pct(p5y):>8}'
         )
         self._render_benchmark_alpha(p1d, p1w, p1m, pytd, p2y, p5y)
 
@@ -337,13 +337,13 @@ class MorningBrief:
                 total_dollar_pnl += dollar
 
             weight     = pos_value / current_value if np.isfinite(pos_value) and current_value > 0 else float('nan')
-            weight_str = _pct(weight) if np.isfinite(weight) else 'n/a'
+            weight_str = pct(weight) if np.isfinite(weight) else 'n/a'
             flag       = ' *' if ticker in self.mutual_funds else '  '
 
             print(
                 f'  {ticker:<9} {price_str:>9}  {weight_str:>4}  '
                 f'{self._dollar(dollar):>9}  '
-                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}  {_pct(rytd):>8}  {_pct(r2y):>8}  {_pct(r5y):>8}'
+                f'{pct(r1d):>8}  {pct(r1w):>8}  {pct(r1m):>8}  {pct(rytd):>8}  {pct(r2y):>8}  {pct(r5y):>8}'
                 f'{flag}'
             )
 
@@ -352,7 +352,7 @@ class MorningBrief:
             mkt_str  = f'${pos_value:,.2f}'
             cost_str = f'${h.cost:,.2f}'
             gain_str = self._dollar(gain_dollar)
-            pct_str  = _pct(gain_pct)
+            pct_str  = pct(gain_pct)
             print(f'            mkt {mkt_str}  ·  cost {cost_str}  ·  gain {gain_str} ({pct_str})')
 
             for key, val in [('1d', r1d), ('1w', r1w), ('1m', r1m), ('ytd', rytd), ('2y', r2y), ('5y', r5y)]:
@@ -378,13 +378,13 @@ class MorningBrief:
 
         print(
             f"  {'S&P 500':<9} {'—':>9}  {'—':>4}  {'—':>9}  "
-            f'{_pct(b1d):>8}  {_pct(b1w):>8}  {_pct(b1m):>8}  {_pct(bytd):>8}  {_pct(b2y):>8}  {_pct(b5y):>8}'
+            f'{pct(b1d):>8}  {pct(b1w):>8}  {pct(b1m):>8}  {pct(bytd):>8}  {pct(b2y):>8}  {pct(b5y):>8}'
         )
         print(
             f"  {'Alpha':<9} {'—':>9}  {'—':>4}  {'—':>9}  "
-            f'{_pct(alpha(p1d, b1d)):>8}  {_pct(alpha(p1w, b1w)):>8}  '
-            f'{_pct(alpha(p1m, b1m)):>8}  {_pct(alpha(pytd, bytd)):>8}  '
-            f'{_pct(alpha(p2y, b2y)):>8}  {_pct(alpha(p5y, b5y)):>8}'
+            f'{pct(alpha(p1d, b1d)):>8}  {pct(alpha(p1w, b1w)):>8}  '
+            f'{pct(alpha(p1m, b1m)):>8}  {pct(alpha(pytd, bytd)):>8}  '
+            f'{pct(alpha(p2y, b2y)):>8}  {pct(alpha(p5y, b5y)):>8}'
         )
 
     def _render_watchlist(self) -> None:
@@ -403,7 +403,7 @@ class MorningBrief:
             price_str = f'${price:,.2f}' if np.isfinite(price) else 'n/a'
             print(
                 f'  {label:<20} {ticker:<6} {price_str:>9}  '
-                f'{_pct(r1d):>8}  {_pct(r1w):>8}  {_pct(r1m):>8}  {_pct(r2y):>8}  {_pct(r5y):>8}   '
+                f'{pct(r1d):>8}  {pct(r1w):>8}  {pct(r1m):>8}  {pct(r2y):>8}  {pct(r5y):>8}   '
                 f'{arrow} {signal:<7}  {reason}'
             )
 
@@ -411,7 +411,7 @@ class MorningBrief:
         print(f'\n{_BRAND}Global markets{_RESET}  (local currency)\n')
         for label, ticker in self.indices.items():
             r = self._period_return(ticker, BRIEF_WINDOW_1D)
-            print(f'  {label:<26}  {self._arrow(r)}  {_pct(r):>8}   {self._data_label(ticker)}')
+            print(f'  {label:<26}  {self._arrow(r)}  {pct(r):>8}   {self._data_label(ticker)}')
 
     def _render_risk(self) -> None:
         risk = self._risk_snapshot()
