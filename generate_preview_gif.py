@@ -17,9 +17,9 @@ from playwright.sync_api import FloatRect, ViewportSize, sync_playwright, Page
 from generate_preview import write_preview_html
 
 DOCS_OUT = Path(__file__).parent / "docs" / "dashboard-preview.gif"
-VIEWPORT: ViewportSize = {"width": 1180, "height": 680}
+VIEWPORT: ViewportSize = {"width": 1200, "height": 502}  # 2.39:1 cinemascope
 INITIAL_WAIT_MS = 600   # Three.js CDN load + first render
-FRAME_INTERVAL_MS = 75  # ~13 fps
+FRAME_INTERVAL_MS = 60  # ~16.7 fps
 PALETTE_COLORS = 180
 DEMO_TICKER = "JPM"
 
@@ -70,13 +70,13 @@ def capture_frames(page: Page) -> list[Image.Image]:
 
     rec.scroll_to(0)
     portfolio_bbox = page.locator("#chart-portfolio canvas").bounding_box()
-    rec.shoot(6)
+    rec.shoot(8)
     if portfolio_bbox:
         page.mouse.move(*_bounding_box_center_offset(portfolio_bbox, 0.70, 0.50))
-    rec.shoot(8)
+    rec.shoot(10)
 
     rec.ease_scroll(rec.offset_top("#watchlist-panel") - header_h - 12, steps=16)
-    rec.shoot(8)
+    rec.shoot(12)
 
     page.locator(f'.wl-row[data-ticker="{DEMO_TICKER}"] .wl-name').click()
     rec.shoot(6)
@@ -84,7 +84,7 @@ def capture_frames(page: Page) -> list[Image.Image]:
     rec.shoot(10)
 
     page.locator('#analysis-panel [data-an-tf="5Y"]').click()
-    rec.shoot(14)
+    rec.shoot(18)
 
     return rec.frames
 
