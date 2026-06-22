@@ -203,10 +203,9 @@ def build_html(payload: Mapping[str, object]) -> Path:
             f"Expected exactly 1 occurrence of '{placeholder}' in template, "
             f"found {template.count(placeholder)}."
         )
-    injected = template.replace(
-        placeholder,
-        f"window.__DASH__ = {json.dumps(payload, indent=2)};",
-    )
+    # Escape '<' so a value containing '</script>' cannot break out of the tag.
+    data = json.dumps(payload, indent=2).replace('<', '\\u003c')
+    injected = template.replace(placeholder, f"window.__DASH__ = {data};")
     OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUT_FILE.write_text(injected)
     return OUT_FILE

@@ -15,14 +15,8 @@ random.seed(42)  # deterministic demo data for reproducible screenshots
 
 
 def _trend(start: float, end: float, n: int, vol: float = 0.022) -> list[float]:
-    """Realistic price series via a geometric Brownian bridge.
-
-    A ruled line + tiny noise reads as fake on a multi-year chart. Instead we walk
-    a Gaussian random series and pin both endpoints (Brownian bridge), so the path
-    wanders like a real stock while still hitting `start`/`end` exactly — keeping the
-    displayed % returns correct. `vol` is the per-step log-return std; more steps
-    naturally accumulate more drift, so longer windows look livelier on their own.
-    """
+    """Geometric Brownian bridge: a Gaussian walk pinned to both endpoints, so the
+    path wanders like a real stock while hitting `start`/`end` exactly (returns stay correct)."""
     if n < 2:
         return [round(start, 2)] * max(n, 1)
     incr = [random.gauss(0.0, vol) for _ in range(n - 1)]

@@ -33,7 +33,7 @@ _ANNOTATION_MARGIN = 1.2
 @dataclass(frozen=True)
 class AssetMetrics:
     """Risk/return metrics for a single asset, portfolio, or benchmark."""
-    annual_return:            float                # CAGR
+    annual_return:            float
     annual_return_arithmetic: float
     annual_volatility:        float
     sharpe_ratio:             float

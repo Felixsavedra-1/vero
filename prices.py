@@ -1,9 +1,4 @@
-"""
-prices.py — Live price fetching via yfinance.
-
-The only module in this project that calls yfinance.
-All other modules receive price data as plain dicts.
-"""
+"""prices.py — The only module that calls yfinance; all others receive plain dicts."""
 
 from __future__ import annotations
 

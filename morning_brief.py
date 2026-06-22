@@ -78,11 +78,8 @@ class MorningBrief:
         self._prices:      pd.DataFrame         = pd.DataFrame()
 
     def fetch(self) -> None:
-        """
-        Starts from Dec 28 of the prior year to capture the YTD baseline close,
-        from the earliest holding start_date to cover full portfolio history, and
-        at least ~5 years back so the 2Y/5Y return windows are computable.
-        """
+        """Fetches from the earliest of: prior-year Dec 28 (YTD baseline), earliest
+        holding start, and ~5 years back (so 2Y/5Y windows are computable)."""
         ytd_anchor    = f"{datetime.now().year - 1}-12-28"
         five_y_anchor = (date.today() - timedelta(days=5 * 366)).isoformat()
         earliest      = min(

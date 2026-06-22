@@ -117,15 +117,18 @@ body::after {
   font-size: 13px; color: var(--dim);
   letter-spacing: 0.06em; margin-left: 14px;
 }
+#header-viz {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px; height: 40px;
+  border: 1px solid var(--border); border-radius: 2px;
+  opacity: 0.9; pointer-events: none;
+}
 #header-brand-stack {
   display: flex; flex-direction: column; gap: 2px; line-height: 1.05;
 }
 #header-brand {
   font-size: 17.5px; letter-spacing: 0.14em; color: var(--tan);
-}
-#header-poweredby {
-  font-size: 7px; letter-spacing: 0.18em; color: var(--dim);
-  text-transform: uppercase;
 }
 #header-staleness {
   font-size: 13px; letter-spacing: 0.06em;
@@ -433,10 +436,10 @@ body::after {
   <header id="header">
     <div id="header-brand-stack">
       <span id="header-brand">Vedra Research</span>
-      <span id="header-poweredby">Powered by Claude</span>
     </div>
     <span style="color:var(--orange)">|</span>
     <span id="header-title"></span>
+    <canvas id="header-viz" width="144" height="80" aria-hidden="true"></canvas>
     <span id="header-gain"></span>
     <div id="header-status">
       <span id="status-dot"></span>
@@ -1037,6 +1040,64 @@ function scheduleFlicker(el) {
     setTimeout(() => { el.style.opacity = ''; scheduleFlicker(el); }, 55);
   }, delay);
 }
+
+// ── Header equity visual (VR-02) ─────────────────────────────────────────────
+// Ported from the Vedra Research portfolio site (drawEquity scene), recolored to
+// the dashboard's rust palette. Self-contained so it can't collide with the 3D loops.
+(function(){
+  var cv = document.getElementById('header-viz');
+  if (!cv) return;
+  var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+  var GOLD = '160,56,40', GREY = '146,140,132', BONE = '#e6e1dc', BONE_RGB = '230,225,220';
+
+  function grid(ctx,W,H){
+    ctx.strokeStyle='rgba(40,40,40,0.85)'; ctx.lineWidth=1;
+    for(var x=0;x<=W;x+=W/8){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(var y=0;y<=H;y+=H/8){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  }
+  function dot(ctx,x,y,r,fill){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();}
+  function ring(ctx,x,y,r,s){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.strokeStyle=s;ctx.lineWidth=1;ctx.stroke();}
+  function glow(ctx,x,y,r,rgb,a){
+    var g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba('+rgb+','+a+')'); g.addColorStop(1,'rgba('+rgb+',0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+
+  function fPort(x){return 0.5+0.18*Math.sin(x*0.15)+0.10*Math.sin(x*0.37+1.3)+0.06*Math.sin(x*0.8+2.1);}
+  function fBench(x){return 0.5+0.12*Math.sin(x*0.13+0.5)+0.05*Math.sin(x*0.3+0.7);}
+  function drawEquity(ctx,W,H,t){
+    grid(ctx,W,H);
+    var topY=H*0.16,botY=H*0.84;
+    function mapY(v){return botY-v*(botY-topY);}
+    var span=44, scroll=t*1.5, step=Math.max(3,W/64);
+    ctx.setLineDash([4,4]);ctx.beginPath();
+    for(var px=0;px<=W;px+=step){var u=px/W,s=u*span+scroll,y=mapY(fBench(s));if(px===0)ctx.moveTo(px,y);else ctx.lineTo(px,y);}
+    ctx.strokeStyle='rgba('+GREY+',0.40)';ctx.lineWidth=1.1;ctx.stroke();ctx.setLineDash([]);
+    var path=[];
+    for(var p2=0;p2<=W;p2+=step){var u2=p2/W,s2=u2*span+scroll;path.push({x:p2,y:mapY(fPort(s2))});}
+    var grad=ctx.createLinearGradient(0,topY,0,botY);
+    grad.addColorStop(0,'rgba('+GOLD+',0.32)');grad.addColorStop(1,'rgba('+GOLD+',0)');
+    ctx.beginPath();ctx.moveTo(path[0].x,botY);
+    for(var i=0;i<path.length;i++)ctx.lineTo(path[i].x,path[i].y);
+    ctx.lineTo(path[path.length-1].x,botY);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
+    ctx.beginPath();for(var j=0;j<path.length;j++){if(j===0)ctx.moveTo(path[j].x,path[j].y);else ctx.lineTo(path[j].x,path[j].y);}
+    ctx.strokeStyle='rgba('+GOLD+',0.18)';ctx.lineWidth=4;ctx.lineJoin='round';ctx.stroke();
+    ctx.beginPath();for(var k=0;k<path.length;k++){if(k===0)ctx.moveTo(path[k].x,path[k].y);else ctx.lineTo(path[k].x,path[k].y);}
+    ctx.strokeStyle='rgba('+GOLD+',0.92)';ctx.lineWidth=1.8;ctx.stroke();
+    var mx=W*0.88, my=mapY(fPort((mx/W)*span+scroll));
+    glow(ctx,mx,my,10,GOLD,0.5);ring(ctx,mx,my,6,'rgba('+BONE_RGB+',0.35)'); dot(ctx,mx,my,2.8,BONE);
+  }
+
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    ctx.clearRect(0,0,W,H); drawEquity(ctx,W,H,-0.9); return;
+  }
+  var t=0;
+  (function loop(){
+    t+=0.011;
+    ctx.clearRect(0,0,W,H); drawEquity(ctx,W,H,t);
+    requestAnimationFrame(loop);
+  })();
+})();
 
 // ── Header ───────────────────────────────────────────────────────────────────
 function renderHeader() {
