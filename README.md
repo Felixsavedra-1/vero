@@ -171,6 +171,13 @@ pytest tests/
 
 ---
 
-<p align="center">
-  <img src="VRcompany.png" width="50%" alt="Vero">
-</p>
+<table align="center" width="100%">
+<tr>
+<td width="50%" align="center" valign="middle">
+  <img src="VRcompany.png" width="92%" alt="Vedra Research" />
+</td>
+<td width="50%" align="center" valign="middle">
+  <img src="vr02-equity.gif" width="92%" alt="VR-02 — animated equity-curve visual: a crimson portfolio line scrolling above its dashed benchmark with a live value marker" />
+</td>
+</tr>
+</table>
