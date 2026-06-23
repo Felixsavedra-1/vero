@@ -58,7 +58,7 @@ def _rewrite_description(raw: str, ticker: str) -> str:
     if not os.environ.get('ANTHROPIC_API_KEY'):
         return _first_sentences(raw)
     try:
-        import anthropic   # optional dependency
+        import anthropic
         client = anthropic.Anthropic()
         msg = client.messages.create(
             model='claude-haiku-4-5',
@@ -308,7 +308,7 @@ def _series_return(prices: list[float]) -> float | None:
 
 def _generate_analysis(ticker: str, sector: str, returns: dict[str, float | None]) -> dict[str, str]:
     """Claude (Sonnet) structured equity brief. Raises on API/parse failure."""
-    import anthropic   # optional dependency
+    import anthropic
     client = anthropic.Anthropic()
     ret_line = ', '.join(f"{k} {v:+.1f}%" for k, v in returns.items() if v is not None) \
         or 'no usable return history'

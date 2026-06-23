@@ -40,7 +40,7 @@ class AssetMetrics:
     sharpe_ci:                tuple[float, float]  # (low, high), Lo (2002) 95% CI
     total_return:             float
     max_drawdown:             float
-    cumulative_returns:       pd.Series            # held for plotting
+    cumulative_returns:       pd.Series
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,7 @@ A local-first portfolio tracker that lives in your terminal and renders a live 3
 ## Highlights
 
 - **Academic-grade risk stats** — Sharpe ratios reported with Lo (2002) asymptotic 95% confidence intervals, plus volatility and max drawdown for the portfolio, the benchmark, and every position.
-- **Trustworthy by construction** — 185 tests, all network-free, with `mypy` type-checking gated in CI on every push.
+- **Trustworthy by construction** — 186 tests, all network-free, with `mypy` type-checking gated in CI on every push.
 - **Server-less 3D dashboard** — Three.js allocation rings and animated sparklines, data injected at build time, opens as a single static HTML file with no backend.
 - **Clean, layered architecture** — a single network module (yfinance), pure compute and render layers, and atomic JSON writes throughout.
 - **Local-first** — all data stays in `~/.portfolio/`. No sign-up, no servers, no data leaves your machine.
@@ -161,7 +161,7 @@ MUTUAL_FUNDS      = frozenset({'SWPPX'})
 <details>
 <summary><b>Tests</b></summary>
 
-185 tests, all network-free.
+186 tests, all network-free.
 
 ```bash
 pytest tests/
