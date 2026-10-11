@@ -29,6 +29,7 @@ from portfolio import (
     cmd_remove,
     cmd_savings_interest,
     cmd_savings_remove,
+    cmd_savings_rename,
     cmd_savings_set,
     cmd_sell,
     cmd_show,
@@ -394,6 +395,60 @@ class TestCmdSavingsSet:
         with pytest.raises(SystemExit, match="non-negative"):
             with _files(fs):
                 cmd_savings_set(self._sargs(balance=-500.0))
+
+
+# ── cmd_savings_rename ──────────────────────────────────────────────────────────
+
+class TestCmdSavingsRename:
+    def _sargs(self, **kwargs) -> argparse.Namespace:
+        defaults = dict(name='Car Fund', balance=10_000.0, apy=4.0, bank='Amex')
+        defaults.update(kwargs)
+        return argparse.Namespace(**defaults)
+
+    def test_renames_account(self, fs):
+        with _files(fs):
+            cmd_savings_set(self._sargs())
+            cmd_savings_rename(argparse.Namespace(old_name='Car Fund', new_name='Home Fund'))
+        accs = json.loads(fs.savings.read_text())
+        assert len(accs) == 1
+        assert accs[0]['name'] == 'Home Fund'
+
+    def test_preserves_balance_apy_bank(self, fs):
+        with _files(fs):
+            cmd_savings_set(self._sargs())
+            cmd_savings_rename(argparse.Namespace(old_name='Car Fund', new_name='Home Fund'))
+        accs = json.loads(fs.savings.read_text())
+        assert accs[0]['balance'] == pytest.approx(10_000.0)
+        assert accs[0]['apy'] == pytest.approx(0.04)
+        assert accs[0]['bank'] == 'Amex'
+
+    def test_old_name_not_found_exits(self, fs):
+        with pytest.raises(SystemExit, match="not a savings account"):
+            with _files(fs):
+                cmd_savings_rename(argparse.Namespace(old_name='Ghost', new_name='Home Fund'))
+
+    def test_new_name_already_exists_exits(self, fs):
+        with pytest.raises(SystemExit, match="already exists"):
+            with _files(fs):
+                cmd_savings_set(self._sargs(name='Car Fund'))
+                cmd_savings_set(self._sargs(name='Home Fund'))
+                cmd_savings_rename(argparse.Namespace(old_name='Car Fund', new_name='Home Fund'))
+
+    def test_same_name_exits(self, fs):
+        with pytest.raises(SystemExit, match="must differ"):
+            with _files(fs):
+                cmd_savings_set(self._sargs())
+                cmd_savings_rename(argparse.Namespace(old_name='Car Fund', new_name='Car Fund'))
+
+    def test_other_accounts_untouched(self, fs):
+        with _files(fs):
+            cmd_savings_set(self._sargs(name='Car Fund'))
+            cmd_savings_set(self._sargs(name='Vacation Fund', balance=2_000.0))
+            cmd_savings_rename(argparse.Namespace(old_name='Car Fund', new_name='Home Fund'))
+        accs = json.loads(fs.savings.read_text())
+        assert len(accs) == 2
+        names = {a['name'] for a in accs}
+        assert names == {'Home Fund', 'Vacation Fund'}
 
 
 # ── cmd_savings_remove ──────────────────────────────────────────────────────────

@@ -257,6 +257,23 @@ def cmd_savings_set(args: argparse.Namespace) -> None:
     print(f'\n  Added  {name}  ${args.balance:,.2f}  ({args.apy / 100:.2%} APY)\n')
 
 
+def cmd_savings_rename(args: argparse.Namespace) -> None:
+    accounts = load_savings(SAVINGS_FILE)
+    old_name = args.old_name
+    new_name = args.new_name
+    existing = next((a for a in accounts if a.name == old_name), None)
+    if existing is None:
+        sys.exit(f"'{old_name}' is not a savings account.")
+    if new_name == old_name:
+        sys.exit('New name must differ from the current name.')
+    collision = next((a for a in accounts if a.name == new_name), None)
+    if collision is not None:
+        sys.exit(f"'{new_name}' already exists as a savings account.")
+    existing.name = new_name
+    save_savings(accounts, SAVINGS_FILE)
+    print(f'\n  Renamed  {old_name}  →  {new_name}\n')
+
+
 def cmd_savings_remove(args: argparse.Namespace) -> None:
     accounts = load_savings(SAVINGS_FILE)
     filtered = [a for a in accounts if a.name != args.name]
@@ -392,6 +409,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_sav_set.add_argument('--bank', type=str,   default=None,
                            help='Institution name shown in the morning brief, e.g. "Amex"')
     p_sav_set.set_defaults(func=cmd_savings_set)
+
+    p_sav_ren = sav_sub.add_parser('rename', help='Rename a savings account')
+    p_sav_ren.add_argument('old_name', type=str, help='Current account name')
+    p_sav_ren.add_argument('new_name', type=str, help='New account name')
+    p_sav_ren.set_defaults(func=cmd_savings_rename)
 
     p_sav_rem = sav_sub.add_parser('remove', help='Remove a savings account')
     p_sav_rem.add_argument('name', type=str, help='Account name to remove')
